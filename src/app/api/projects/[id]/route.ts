@@ -40,9 +40,22 @@ export async function GET(
           include: getProjectIncludes(isInternal),
         });
       } else {
-        // Client gets their own organization project
+        // Client gets ONLY their own organization project
+        const userWithMemberships = await prisma.user.findUnique({
+          where: { id: user.id },
+          include: { memberships: true },
+        });
+        const orgIds = [
+          ...(user.activeOrgId ? [user.activeOrgId] : []),
+          ...(userWithMemberships?.memberships?.map((m) => m.organizationId) || []),
+        ].filter(Boolean);
+
+        if (orgIds.length === 0) {
+          return NextResponse.json({ error: 'No project assigned to your account' }, { status: 404 });
+        }
+
         project = await prisma.project.findFirst({
-          where: { organizationId: user.activeOrgId || undefined },
+          where: { organizationId: { in: orgIds } },
           include: getProjectIncludes(isInternal),
         });
       }
@@ -53,11 +66,13 @@ export async function GET(
         include: getProjectIncludes(isInternal),
       });
 
-      // Strict Access Enforcement:
-      // If Subordinate PM (Nitin) attempts to load a project not assigned to him, reject!
+      if (!project) {
+        return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+      }
+
+      // Strict Access Enforcement for Subordinate PM (Nitin):
       if (
         user.role === 'LUXE_PM' &&
-        project &&
         project.assignedPmId !== user.id &&
         project.createdById !== user.id
       ) {
@@ -65,6 +80,26 @@ export async function GET(
           { error: 'Access Denied: You do not have permission to view this project.' },
           { status: 403 }
         );
+      }
+
+      // Strict Access Enforcement for Client Stakeholders:
+      // A client CANNOT access or view any project belonging to a different organization
+      if (!isInternal) {
+        const userWithMemberships = await prisma.user.findUnique({
+          where: { id: user.id },
+          include: { memberships: true },
+        });
+        const orgIds = [
+          ...(user.activeOrgId ? [user.activeOrgId] : []),
+          ...(userWithMemberships?.memberships?.map((m) => m.organizationId) || []),
+        ].filter(Boolean);
+
+        if (!orgIds.includes(project.organizationId)) {
+          return NextResponse.json(
+            { error: 'Access Denied: You do not have permission to view this project.' },
+            { status: 403 }
+          );
+        }
       }
     }
 
@@ -99,6 +134,18 @@ export async function PATCH(
     const existingProject = await prisma.project.findUnique({ where: { id } });
     if (!existingProject) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    // Role verification: Clients cannot mutate project settings
+    if (
+      user.role === 'CLIENT_OWNER' ||
+      user.role === 'CLIENT_COLLABORATOR' ||
+      user.role === 'CLIENT_VIEWER'
+    ) {
+      return NextResponse.json(
+        { error: 'Access Denied: Only studio administration can modify project settings.' },
+        { status: 403 }
+      );
     }
 
     // Role verification: Nitin can only mutate assigned projects
@@ -189,7 +236,7 @@ function getProjectIncludes(isInternal: boolean) {
       },
     },
     requirements: {
-      orderBy: { createdAt: 'asc' as const },
+      orderBy: [{ sequence: 'asc' as const }, { createdAt: 'asc' as const }],
     },
     deliverables: {
       orderBy: { createdAt: 'asc' as const },

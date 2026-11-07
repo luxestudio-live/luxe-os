@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { FullProjectData, UserSession, MilestoneData } from '@/lib/types';
 import { SmtpManagement } from './SmtpManagement';
+import { RequirementsMatrixSheet } from '../requirements/RequirementsMatrixSheet';
 import {
   Shield,
   Layers,
@@ -13,6 +14,7 @@ import {
   Plus,
   Mail,
   Send,
+  FileSpreadsheet,
   FileText,
   Sliders,
   ChevronRight,
@@ -39,7 +41,7 @@ export function AdminWorkspace({
   onReload,
   availableUsers = [],
 }: AdminWorkspaceProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'milestones' | 'smtp' | 'updates'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'matrix' | 'milestones' | 'smtp' | 'updates'>('overview');
   const [editingMilestone, setEditingMilestone] = useState<MilestoneData | null>(null);
   const [newStatus, setNewStatus] = useState('');
   const [newProgress, setNewProgress] = useState(0);
@@ -62,7 +64,9 @@ export function AdminWorkspace({
   const [isInternalOnly, setIsInternalOnly] = useState(false);
   const [publishing, setPublishing] = useState(false);
 
-  const pendingRequirements = project.requirements.filter((r) => r.status === 'PENDING');
+  const pendingRequirements = (project.requirements || []).filter(
+    (r) => !r.clientInput?.trim() && r.status !== 'ACCEPTED'
+  );
   const openUatIssues = project.uatIssues.filter((i) => i.status !== 'CLOSED' && i.status !== 'RESOLVED');
 
   const isSuperAdmin = currentUser.role === 'SUPER_ADMIN';
@@ -186,8 +190,8 @@ export function AdminWorkspace({
           <h2 className="text-xl font-serif font-semibold text-white tracking-tight">
             Managing: {project.name}
           </h2>
-          <p className="text-xs text-zinc-400">
-            Assigned Manager: <span className="text-[#C9A56A] font-medium">{project.assignedPmName || 'Studio Leadership'}</span>
+          <p className="text-xs text-zinc-400 font-mono">
+            Status: <span className="text-[#C9A56A] font-medium">{project.status}</span> &middot; Category: {project.category}
           </p>
         </div>
 
@@ -211,6 +215,22 @@ export function AdminWorkspace({
             }`}
           >
             Milestone Operations
+          </button>
+          <button
+            onClick={() => setActiveTab('matrix')}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1 font-medium transition ${
+              activeTab === 'matrix'
+                ? 'bg-[#C9A56A] text-black font-semibold shadow'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5" />
+            <span>Content &amp; Requirements Sheet</span>
+            {pendingRequirements.length > 0 && (
+              <span className="rounded-full bg-amber-500/20 px-1.5 py-0.2 text-[9px] font-mono text-amber-300 font-bold">
+                {pendingRequirements.length}
+              </span>
+            )}
           </button>
           <button
             onClick={() => setActiveTab('updates')}
@@ -459,6 +479,18 @@ export function AdminWorkspace({
             ))}
           </div>
         </div>
+      )}
+
+      {/* Content & Requirements Matrix Sheet */}
+      {activeTab === 'matrix' && (
+        <RequirementsMatrixSheet
+          projectId={project.id}
+          projectName={project.name}
+          requirements={project.requirements}
+          currentUser={currentUser}
+          isInternalUser={true}
+          onReload={onReload}
+        />
       )}
 
       {/* SMTP Tab (Super Admin Only) */}

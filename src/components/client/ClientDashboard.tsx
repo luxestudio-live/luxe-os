@@ -30,7 +30,9 @@ export function ClientDashboard({
   currentUser,
   onNavigateTab,
 }: ClientDashboardProps) {
-  const pendingRequirements = project.requirements.filter((r) => r.status === 'PENDING');
+  const pendingRequirements = project.requirements.filter(
+    (r) => !r.clientInput?.trim() && r.status !== 'ACCEPTED'
+  );
   const activeMilestone = project.milestones.find((m) => m.status === 'IN_PROGRESS') || project.milestones[0];
   const isHypercare = project.status === 'HYPERCARE';
 
@@ -233,7 +235,7 @@ export function ClientDashboard({
           {/* Primary Quick Actions */}
           <div className="flex flex-col sm:flex-row md:flex-col gap-2.5 shrink-0">
             <a
-              href={project.prototypeUrl || 'https://kalajay.theluxestudio.in/'}
+              href={project.prototypeUrl || '#'}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 rounded-xl bg-[#C9A56A] px-5 py-3 text-xs font-semibold text-black hover:bg-[#B89355] transition shadow-md"
@@ -245,17 +247,17 @@ export function ClientDashboard({
             {pendingRequirements.length > 0 && (
               <button
                 onClick={() => onNavigateTab('actions')}
-                className="flex items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-5 py-3 text-xs font-medium text-amber-300 hover:bg-amber-500/20 transition"
+                className="flex items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-5 py-3 text-xs font-medium text-amber-300 hover:bg-amber-500/20 transition shadow-sm"
               >
                 <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
-                Action Needed ({pendingRequirements.length} Items)
+                <span>Fill Content Matrix ({pendingRequirements.length} Pending)</span>
               </button>
             )}
           </div>
         </div>
       </div>
 
-      {/* 3. Urgent Action Callout (If pending) */}
+      {/* 3. Content Matrix Callout (If pending) */}
       {pendingRequirements.length > 0 && (
         <div
           onClick={() => onNavigateTab('actions')}
@@ -265,16 +267,16 @@ export function ClientDashboard({
             <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
             <div>
               <h4 className="text-xs font-semibold text-white">
-                LuxeStudio is awaiting inputs for Milestone 2: ERP Integration
+                Website Content &amp; Requirements Matrix &mdash; Action Required
               </h4>
               <p className="text-xs text-zinc-400 mt-0.5">
-                Priority: ERP source code repository access and sanitized database schema export.
+                Fill in your approved brand copy under <strong className="text-[#C9A56A]">Client Actual Data / Input (Fill Here)</strong> and attach Google Drive asset links.
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-1 text-xs font-semibold text-amber-300 shrink-0">
-            <span>Review &amp; Submit</span>
+            <span>Open Interactive Sheet</span>
             <ChevronRight className="h-3.5 w-3.5" />
           </div>
         </div>
@@ -352,23 +354,23 @@ export function ClientDashboard({
 
       {/* 5. Contact & Recent Update in One Calm Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Project Lead */}
+        {/* Studio Operations & Direct Delivery Desk */}
         <div className="rounded-2xl border border-white/10 bg-[#171719] p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0B0B0D] border border-[#C9A56A]/40 text-[#C9A56A] font-serif font-bold text-sm">
-              KM
+              LS
             </div>
             <div>
-              <div className="text-xs font-semibold text-white">Kabir Mehta</div>
-              <div className="text-[11px] text-zinc-400">Dedicated Project Manager</div>
-              <div className="text-[11px] font-mono text-[#C9A56A]">pm@theluxestudio.in</div>
+              <div className="text-xs font-semibold text-white">LuxeStudio Core Team</div>
+              <div className="text-[11px] text-zinc-400">Operations &amp; Delivery Desk</div>
+              <div className="text-[11px] font-mono text-[#C9A56A]">hello@theluxestudio.in</div>
             </div>
           </div>
           <a
-            href="mailto:pm@theluxestudio.in?subject=Project%20Query"
+            href="mailto:hello@theluxestudio.in?subject=Project%20Delivery%20Inquiry"
             className="rounded-lg border border-white/10 bg-[#0B0B0D] px-3 py-1.5 text-xs text-white hover:border-[#C9A56A]/50 transition flex items-center gap-1.5"
           >
-            <Mail className="h-3 w-3 text-[#C9A56A]" /> Email PM
+            <Mail className="h-3 w-3 text-[#C9A56A]" /> Contact Studio
           </a>
         </div>
 

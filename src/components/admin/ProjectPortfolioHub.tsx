@@ -88,6 +88,7 @@ export function ProjectPortfolioHub({
   // Onboard Client Modal & Form State
   const [onboardModalOpen, setOnboardModalOpen] = useState(false);
   const [newClientName, setNewClientName] = useState('');
+  const [newClientUsername, setNewClientUsername] = useState('');
   const [newProjectName, setNewProjectName] = useState('');
   const [newCategory, setNewCategory] = useState('Custom Web & E-Commerce');
   const [newClientEmail, setNewClientEmail] = useState('');
@@ -103,6 +104,7 @@ export function ProjectPortfolioHub({
     isOpen: boolean;
     clientName: string;
     projectName: string;
+    userId: string;
     email: string;
     temporaryPassword: string;
     portalUrl: string;
@@ -215,7 +217,9 @@ export function ProjectPortfolioHub({
     setOnboarding(true);
     try {
       const generatedPass = newCustomPassword.trim() || `Luxe-${Math.floor(1000 + Math.random() * 9000)}!`;
-      const clientEmail = (newClientEmail.trim() || `${newClientName.toLowerCase().replace(/[^a-z0-9]/g, '')}@client.com`);
+      const clientSlug = newClientName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const clientUserId = (newClientUsername.trim() || `luxe_${clientSlug}`).toLowerCase();
+      const clientEmail = (newClientEmail.trim() || `${clientUserId}@client.theluxestudio.in`);
 
       const res = await fetch('/api/projects', {
         method: 'POST',
@@ -224,6 +228,7 @@ export function ProjectPortfolioHub({
           clientName: newClientName,
           projectName: newProjectName,
           category: newCategory,
+          clientUsername: clientUserId,
           clientEmail,
           clientContactName: newClientContactName || `${newClientName} Contact`,
           customPassword: generatedPass,
@@ -237,10 +242,12 @@ export function ProjectPortfolioHub({
       if (!res.ok) throw new Error(data.error || 'Failed to onboard client');
 
       // Pop credentials handover kit modal
+      const resolvedUserId = data.credentials?.userId || clientUserId;
       setCredentialsModal({
         isOpen: true,
         clientName: newClientName,
         projectName: newProjectName,
+        userId: resolvedUserId,
         email: clientEmail,
         temporaryPassword: generatedPass,
         portalUrl: `${window.location.origin}/login`,
@@ -249,6 +256,7 @@ export function ProjectPortfolioHub({
 
       // Reset form
       setNewClientName('');
+      setNewClientUsername('');
       setNewProjectName('');
       setNewClientEmail('');
       setNewClientContactName('');
@@ -265,7 +273,7 @@ export function ProjectPortfolioHub({
   // Copy Handover Kit
   const handleCopyCredentials = () => {
     if (!credentialsModal) return;
-    const text = `LUXEOS CLIENT ACCESS DETAILS\n\nClient: ${credentialsModal.clientName}\nProject: ${credentialsModal.projectName}\nPortal URL: ${credentialsModal.portalUrl}\nEmail / Username: ${credentialsModal.email}\nTemporary Password: ${credentialsModal.temporaryPassword}\n\n*Important: You will be asked to choose a permanent private password on your first login.*`;
+    const text = `LUXEOS CLIENT ACCESS DETAILS\n\nClient: ${credentialsModal.clientName}\nProject: ${credentialsModal.projectName}\nPortal URL: ${credentialsModal.portalUrl}\nUser ID: ${credentialsModal.userId}\nTemporary Password: ${credentialsModal.temporaryPassword}\n\n*Important: Sign in using your User ID. You will be prompted to choose a permanent private password on your first login.*`;
 
     navigator.clipboard.writeText(text);
     setCredentialsModal({ ...credentialsModal, copied: true });
@@ -407,7 +415,26 @@ export function ProjectPortfolioHub({
 
       {/* Project Matrix / Cards (Where We Are In A Gist) */}
       <div className="space-y-4">
-        {filteredProjects.length === 0 ? (
+        {projects.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-[#171719] p-12 text-center text-xs text-zinc-400 space-y-4 shadow-xl">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#C9A56A]/10 text-[#C9A56A] border border-[#C9A56A]/20">
+              <Briefcase className="h-7 w-7" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-serif font-semibold text-white">Clean Slate &mdash; No Projects Yet</h3>
+              <p className="text-zinc-400 max-w-md mx-auto leading-relaxed">
+                Your LuxeOS database is ready for production. Click below to onboard your first enterprise client and generate their unique User ID &amp; access credentials.
+              </p>
+            </div>
+            <button
+              onClick={() => setOnboardModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#C9A56A] px-5 py-3 text-xs font-semibold text-black hover:bg-[#B89355] transition shadow-lg shadow-[#C9A56A]/20"
+            >
+              <Plus className="h-4 w-4" />
+              <span>+ Onboard First Client Project</span>
+            </button>
+          </div>
+        ) : filteredProjects.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-[#171719] p-8 text-center text-xs text-zinc-400 space-y-2">
             <p>No projects match your current filter.</p>
             <button
@@ -467,7 +494,7 @@ export function ProjectPortfolioHub({
                     <div className="text-xs text-zinc-400 mt-0.5 flex items-center gap-3">
                       <span>Phase: <strong className="text-zinc-200">{p.currentPhase}</strong></span>
                       <span>&middot;</span>
-                      <span>Manager: <strong className="text-[#C9A56A]">{p.assignedPmName || 'Studio Leadership'}</strong></span>
+                      <span>Target: <strong className="text-zinc-200">{formatDate(p.targetDate)}</strong></span>
                     </div>
                   </div>
 
@@ -628,8 +655,14 @@ export function ProjectPortfolioHub({
                     type="text"
                     required
                     value={newClientName}
-                    onChange={(e) => setNewClientName(e.target.value)}
-                    placeholder="e.g. Kalajay or Aurum"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setNewClientName(val);
+                      if (!newClientUsername || newClientUsername.startsWith('luxe_')) {
+                        setNewClientUsername(`luxe_${val.toLowerCase().replace(/[^a-z0-9]/g, '')}`);
+                      }
+                    }}
+                    placeholder="e.g. Maison Atelier or Chrono"
                     className="w-full rounded-lg border border-white/10 bg-[#0B0B0D] px-3 py-2 text-white placeholder-zinc-600 focus:border-[#C9A56A] focus:outline-none"
                   />
                 </div>
@@ -695,43 +728,61 @@ export function ProjectPortfolioHub({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-zinc-400 font-medium mb-1">
+                      Client User ID (Login Handle) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newClientUsername}
+                      onChange={(e) => setNewClientUsername(e.target.value)}
+                      placeholder="e.g. luxe_kalajay"
+                      className="w-full rounded-lg border border-[#C9A56A]/40 bg-[#171719] px-3 py-2 text-white font-mono placeholder-zinc-600 focus:border-[#C9A56A] focus:outline-none"
+                    />
+                    <span className="text-[10px] text-[#C9A56A] font-mono mt-0.5 block">
+                      Client will use this handle to log in
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-zinc-400 font-medium mb-1">
                       Client Contact Name
                     </label>
                     <input
                       type="text"
                       value={newClientContactName}
                       onChange={(e) => setNewClientContactName(e.target.value)}
-                      placeholder="e.g. Rohan Jaikishan"
+                      placeholder="e.g. Vikram Singhania"
+                      className="w-full rounded-lg border border-white/10 bg-[#171719] px-3 py-2 text-white placeholder-zinc-600 focus:border-[#C9A56A] focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-zinc-400 font-medium mb-1">
+                      Client Email (Optional / Recovery)
+                    </label>
+                    <input
+                      type="email"
+                      value={newClientEmail}
+                      onChange={(e) => setNewClientEmail(e.target.value)}
+                      placeholder="e.g. executive@clientdomain.com"
                       className="w-full rounded-lg border border-white/10 bg-[#171719] px-3 py-2 text-white placeholder-zinc-600 focus:border-[#C9A56A] focus:outline-none"
                     />
                   </div>
 
                   <div>
                     <label className="block text-zinc-400 font-medium mb-1">
-                      Client Login Email *
+                      Temporary Password (Optional)
                     </label>
                     <input
-                      type="email"
-                      required
-                      value={newClientEmail}
-                      onChange={(e) => setNewClientEmail(e.target.value)}
-                      placeholder="e.g. owner@kalajay.com"
-                      className="w-full rounded-lg border border-white/10 bg-[#171719] px-3 py-2 text-white placeholder-zinc-600 focus:border-[#C9A56A] focus:outline-none"
+                      type="text"
+                      value={newCustomPassword}
+                      onChange={(e) => setNewCustomPassword(e.target.value)}
+                      placeholder="Leave blank to auto-generate"
+                      className="w-full rounded-lg border border-white/10 bg-[#171719] px-3 py-2 text-white placeholder-zinc-600 font-mono focus:border-[#C9A56A] focus:outline-none"
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-zinc-400 font-medium mb-1">
-                    Temporary Password (Optional — auto-generated if blank)
-                  </label>
-                  <input
-                    type="text"
-                    value={newCustomPassword}
-                    onChange={(e) => setNewCustomPassword(e.target.value)}
-                    placeholder="Leave blank for secure auto-generated password"
-                    className="w-full rounded-lg border border-white/10 bg-[#171719] px-3 py-2 text-white placeholder-zinc-600 font-mono focus:border-[#C9A56A] focus:outline-none"
-                  />
                 </div>
               </div>
 
@@ -762,12 +813,12 @@ export function ProjectPortfolioHub({
                       onChange={(e) => setNewAssignedPmId(e.target.value)}
                       className="w-full rounded-lg border border-white/10 bg-[#0B0B0D] px-3 py-2 text-white focus:border-[#C9A56A] focus:outline-none"
                     >
-                      <option value={currentUser.id}>Private to Studio Leadership (You)</option>
+                      <option value={currentUser.id}>Only Me (Rahul &mdash; Private, Nitin cannot see)</option>
                       {availableUsers
                         .filter((u) => u.role === 'LUXE_PM')
                         .map((u) => (
                           <option key={u.id} value={u.id}>
-                            Assign to {u.name} (Subordinate PM)
+                            Assign to Nitin (Nitin can view &amp; manage)
                           </option>
                         ))}
                     </select>
@@ -843,9 +894,15 @@ export function ProjectPortfolioHub({
                   <span className="text-white select-all">{credentialsModal.portalUrl}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-white/5">
-                  <span className="text-zinc-500">Client Email:</span>
-                  <span className="text-white select-all">{credentialsModal.email}</span>
+                  <span className="text-zinc-500">Client User ID:</span>
+                  <span className="text-[#C9A56A] font-bold select-all text-sm">{credentialsModal.userId}</span>
                 </div>
+                {credentialsModal.email && !credentialsModal.email.endsWith('@client.theluxestudio.in') && (
+                  <div className="flex justify-between py-1 border-b border-white/5">
+                    <span className="text-zinc-500">Client Email:</span>
+                    <span className="text-zinc-300 select-all">{credentialsModal.email}</span>
+                  </div>
+                )}
                 <div className="flex justify-between py-1 border-b border-white/5">
                   <span className="text-zinc-500">Temporary Password:</span>
                   <span className="text-[#C9A56A] font-bold select-all">{credentialsModal.temporaryPassword}</span>
@@ -1014,12 +1071,12 @@ export function ProjectPortfolioHub({
                     onChange={(e) => setEditAssignedPmId(e.target.value)}
                     className="w-full rounded-lg border border-white/10 bg-[#0B0B0D] px-3 py-2 text-white focus:border-[#C9A56A] focus:outline-none"
                   >
-                    <option value={currentUser.id}>Studio Leadership (Private)</option>
+                    <option value={currentUser.id}>Only Me (Rahul &mdash; Private, Nitin cannot see)</option>
                     {availableUsers
                       .filter((u) => u.role === 'LUXE_PM')
                       .map((u) => (
                         <option key={u.id} value={u.id}>
-                          Assign to {u.name} (Subordinate PM)
+                          Assign to Nitin (Nitin can view &amp; manage)
                         </option>
                       ))}
                   </select>

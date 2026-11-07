@@ -30,9 +30,22 @@ export async function GET(request: Request) {
         ],
       };
     } else {
-      // Client sees only their organization's projects
+      // Client sees ONLY their organization's projects
+      const userWithMemberships = await prisma.user.findUnique({
+        where: { id: user.id },
+        include: { memberships: true },
+      });
+      const orgIds = [
+        ...(user.activeOrgId ? [user.activeOrgId] : []),
+        ...(userWithMemberships?.memberships?.map((m) => m.organizationId) || []),
+      ].filter(Boolean);
+
+      if (orgIds.length === 0) {
+        return NextResponse.json({ projects: [], totalCount: 0 });
+      }
+
       whereClause = {
-        organizationId: user.activeOrgId || undefined,
+        organizationId: { in: orgIds },
       };
     }
 
@@ -79,6 +92,7 @@ export async function POST(request: Request) {
       targetDate,
       prototypeUrl,
       assignedPmId, // Only respected if user is SUPER_ADMIN
+      clientUsername,
       clientEmail,
       clientContactName,
       customPassword,
@@ -140,19 +154,40 @@ export async function POST(request: Request) {
     });
 
     // Generate or use credentials for client user
-    const finalClientEmail = (clientEmail || `${clientName.toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`).trim().toLowerCase();
+    const cleanClientSlug = clientName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const finalClientUsername = (clientUsername || `luxe_${cleanClientSlug}`).trim().toLowerCase();
+    const finalClientEmail = (clientEmail || `${finalClientUsername}@client.theluxestudio.in`).trim().toLowerCase();
     const temporaryPassword = customPassword || `Luxe-${Math.floor(1000 + Math.random() * 9000)}!`;
     const passwordHash = await bcrypt.hash(temporaryPassword, 10);
 
-    let clientUser = await prisma.user.findUnique({ where: { email: finalClientEmail } });
+    let clientUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: finalClientUsername },
+          { email: finalClientEmail },
+        ],
+      },
+    });
+
     if (!clientUser) {
       clientUser = await prisma.user.create({
         data: {
           email: finalClientEmail,
-          name: clientContactName || `${clientName} Representative`,
+          username: finalClientUsername,
+          name: clientContactName || `${clientName} Stakeholder`,
           passwordHash,
           role: 'CLIENT_OWNER',
           activeOrgId: org.id,
+          mustChangePassword: true,
+        },
+      });
+    } else {
+      clientUser = await prisma.user.update({
+        where: { id: clientUser.id },
+        data: {
+          username: finalClientUsername,
+          activeOrgId: org.id,
+          passwordHash,
           mustChangePassword: true,
         },
       });
@@ -216,6 +251,8 @@ export async function POST(request: Request) {
       success: true,
       project,
       credentials: {
+        userId: finalClientUsername,
+        username: finalClientUsername,
         email: finalClientEmail,
         temporaryPassword,
         name: clientUser.name,

@@ -56,6 +56,7 @@ export async function GET(request: Request) {
       user: {
         id: user.id,
         email: user.email,
+        username: user.username,
         name: user.name,
         role: user.role,
         avatar: user.avatar,

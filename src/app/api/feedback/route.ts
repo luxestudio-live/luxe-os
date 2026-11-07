@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     const feedback = await prisma.prototypeFeedback.create({
       data: {
         projectId,
-        pageUrl: pageUrl || 'https://kalajay.theluxestudio.in/',
+        pageUrl: pageUrl || '/',
         environment: 'Prototype',
         category: category || 'UI/UX',
         priority: priority || 'MEDIUM',

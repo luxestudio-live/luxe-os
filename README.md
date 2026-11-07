@@ -2,8 +2,7 @@
 
 **Product:** LuxeOS  
 **Company:** LuxeStudio (`https://theluxestudio.in`)  
-**Proposed Application URL:** `https://os.theluxestudio.in`  
-**Initial Pilot Client:** Kalajay (`https://kalajay.theluxestudio.in/`)
+**Proposed Application URL:** `https://os.theluxestudio.in`
 
 ---
 
@@ -45,60 +44,40 @@ Refined luxury design system derived from LuxeStudio's brand identity:
 
 ---
 
-## 4. Initial Pilot Client: Kalajay
+## 4. Studio Leadership & Operations Access
 
-LuxeOS is pre-seeded with real initial project data for **Kalajay**:
-- **Project Type**: Custom E-Commerce Website Development & ERP Integration
-- **Staging Prototype**: `https://kalajay.theluxestudio.in/`
-- **Delivery Gates**:
-  1. *Website prototype* &mdash; Completed (Approved prototype hosted on staging).
-  2. *ERP review and priority integration* &mdash; In Progress (Target: 14 Nov 2026).
-  3. *Full website functionality and service integrations* &mdash; Period: 15–25 Nov 2026.
-  4. *Implementation progress checkpoint (~80%)* &mdash; Target: 25 Nov 2026.
-  5. *UAT and stabilisation* &mdash; Period: 25–28 Nov 2026.
-  6. *Final readiness and handover preparation* &mdash; Target: 28–30 Nov 2026.
-  7. *Production go-live* &mdash; TBD following formal UAT acceptance.
-  8. *Hypercare* &mdash; 14 calendar days from actual go-live date.
-  9. *Ongoing basic maintenance* &mdash; Complimentary long-term routine maintenance.
-- **12 Client Requirements**: Seeded in the Action Required Centre across credentials delegation, schema exports, and domain details.
+LuxeOS provides a clean operations slate out of the box with dedicated studio leadership access:
 
----
-
-## 5. Demo Roles & Instant Switcher
-
-LuxeOS includes an interactive role switcher in the top navigation to evaluate the platform from every user perspective:
-
-| User | Email | Role | Scope |
+| User | Handle | Role | Scope |
 |---|---|---|---|
-| **Aria Vance** | `superadmin@theluxestudio.in` | Super Admin | Full governance, SMTP setup, audit logs |
-| **Kabir Mehta** | `pm@theluxestudio.in` | Luxe PM | Milestone management, requirement review, updates |
-| **Dev Sharma** | `dev@theluxestudio.in` | Internal Team | Task tracking, technical progress, UAT triage |
-| **Rohan Jaikishan** | `owner@kalajay.com` | Client Owner | Milestones, prototype sign-off, approvals |
-| **Priya Sen** | `tech@kalajay.com` | Client Collaborator | Requirements submission, defect logging |
-| **Anand Verma** | `finance@kalajay.com` | Client Viewer | Read-only visibility into roadmap & updates |
-
-*All accounts are pre-configured with default demo password: `Password123!`*
+| **Rahul Kushwaha** | `rahul` | Super Admin | Full studio owner governance, all projects access, onboarding |
+| **Nitin Chandnani** | `nitin` | Luxe PM | Scoped PM access (assigned projects only) |
 
 ---
 
-## 6. Quick Start & Local Execution
+## 5. Quick Start & Local Execution
 
 ### Prerequisites
 - Node.js 20+ / 22+
 - npm 10+
+- PostgreSQL database (Supabase recommended)
 
 ### Setup Commands
 ```bash
 # 1. Install dependencies
 npm install
 
-# 2. Push database schema & generate Prisma Client
+# 2. Configure environment variables
+cp .env.example .env
+# Set DATABASE_URL and NEXTAUTH_SECRET
+
+# 3. Push database schema & generate Prisma Client
 npx prisma db push
 
-# 3. Seed database with Kalajay project data
+# 4. Seed clean studio slate
 node prisma/seed.js
 
-# 4. Start development server
+# 5. Start development server
 npm run dev
 ```
 

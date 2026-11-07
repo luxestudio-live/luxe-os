@@ -9,6 +9,7 @@ export type UserRole =
 export interface UserSession {
   id: string;
   email: string;
+  username?: string | null;
   name: string;
   role: UserRole;
   avatar?: string | null;
@@ -64,6 +65,14 @@ export interface RequirementData {
   id: string;
   projectId: string;
   milestoneId?: string | null;
+  sequence?: number;
+  pageRoute?: string | null;
+  sectionComponent?: string | null;
+  specificRequirement?: string | null;
+  currentDraft?: string | null;
+  clientInput?: string | null;
+  assetUrl?: string | null;
+  guidelines?: string | null;
   title: string;
   description: string;
   type: 'TEXT' | 'LONG_TEXT' | 'FILE' | 'CREDENTIALS_DELEGATION' | 'URL' | 'CONFIRMATION';

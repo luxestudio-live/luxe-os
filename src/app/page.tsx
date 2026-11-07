@@ -24,6 +24,7 @@ import {
   Loader2,
   LayoutGrid,
   Sliders,
+  Briefcase,
 } from 'lucide-react';
 
 export default function Home() {
@@ -58,19 +59,23 @@ export default function Home() {
       setProjects(userProjects);
 
       // 3. Determine which project to load
-      let projId = targetProjectId || activeProjectId;
-      const isValidProject = userProjects.some((p: any) => p.id === projId);
-      if (!isValidProject && userProjects.length > 0) {
-        projId = userProjects[0].id;
-      } else if (!isValidProject) {
-        projId = 'default';
-      }
-      setActiveProjectId(projId);
+      if (userProjects.length > 0) {
+        let projId = targetProjectId || activeProjectId;
+        const isValidProject = userProjects.some((p: any) => p.id === projId);
+        if (!isValidProject) {
+          projId = userProjects[0].id;
+        }
+        setActiveProjectId(projId);
 
-      const projectRes = await fetch(`/api/projects/${projId}`);
-      const projectData = await projectRes.json();
-      if (!projectData.error) {
-        setProject(projectData);
+        const projectRes = await fetch(`/api/projects/${projId}`);
+        const projectData = await projectRes.json();
+        if (!projectData.error) {
+          setProject(projectData);
+        }
+      } else {
+        setProject(null);
+        setActiveProjectId('');
+        setActiveSurface('admin');
       }
     } catch (err) {
       console.error('Error loading initial data:', err);
@@ -192,7 +197,7 @@ export default function Home() {
     await fetchData();
   };
 
-  if (loading || !project || !currentUser) {
+  if (loading || !currentUser) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B0B0D] text-white">
         <div className="flex items-center gap-3">
@@ -201,7 +206,7 @@ export default function Home() {
           </div>
           <div className="space-y-0.5">
             <h1 className="font-serif text-base font-semibold tracking-wider">LUXEOS</h1>
-            <p className="text-xs text-zinc-400 font-mono">Loading project workspace...</p>
+            <p className="text-xs text-zinc-400 font-mono">Loading operations workspace...</p>
           </div>
         </div>
         <Loader2 className="mt-5 h-4 w-4 animate-spin text-[#C9A56A]" />
@@ -214,28 +219,53 @@ export default function Home() {
     currentUser.role === 'LUXE_PM' ||
     currentUser.role === 'INTERNAL_TEAM';
 
-  const pendingCount = project.requirements.filter((r) => r.status === 'PENDING').length;
+  const pendingCount = project ? (project.requirements || []).filter(
+    (r) => !r.clientInput?.trim() && r.status !== 'ACCEPTED'
+  ).length : 0;
 
   return (
     <div className="min-h-screen bg-[#0B0B0D] text-[#F7F5F1] selection:bg-[#C9A56A]/30 selection:text-white">
       {/* Top Main Navigation */}
       <Header
         currentUser={currentUser}
-        availableUsers={availableUsers}
         activeSurface={activeSurface}
         setActiveSurface={setActiveSurface}
-        onUserSwitch={handleUserSwitch}
         pendingActionsCount={pendingCount}
         availableProjects={projects}
-        activeProjectId={project.id}
+        activeProjectId={project?.id || ''}
         onSelectProject={handleSelectProject}
       />
 
       {/* Surface View Container */}
-      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+      <main className={`mx-auto px-4 py-6 sm:px-6 transition-all duration-300 ${
+        clientTab === 'actions' || activeSurface === 'admin' ? 'max-w-[1560px]' : 'max-w-6xl'
+      }`}>
         {activeSurface === 'client' ? (
-          <div className="space-y-6">
-            {/* Simplified 4-Tab Bar */}
+          !project ? (
+            <div className="rounded-2xl border border-white/10 bg-[#171719] p-12 text-center text-xs text-zinc-400 space-y-4 max-w-lg mx-auto my-12 shadow-2xl">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#C9A56A]/10 text-[#C9A56A] border border-[#C9A56A]/20">
+                <Briefcase className="h-6 w-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-serif font-semibold text-white">No Client Projects Onboarded Yet</h3>
+                <p className="text-zinc-400 leading-relaxed">
+                  {isInternal
+                    ? 'Your studio registry has zero active projects. Switch to Studio Admin to onboard your first client project.'
+                    : 'No projects are currently linked to your organization. Please contact LuxeStudio.'}
+                </p>
+              </div>
+              {isInternal && (
+                <button
+                  onClick={() => setActiveSurface('admin')}
+                  className="rounded-xl bg-[#C9A56A] px-5 py-2.5 text-xs font-semibold text-black hover:bg-[#B89355] transition shadow-lg shadow-[#C9A56A]/20"
+                >
+                  Switch to Studio Admin &rarr;
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Simplified 4-Tab Bar */}
             <div className="flex items-center justify-between border-b border-white/[0.08] pb-3 text-xs">
               <div className="flex items-center gap-1 sm:gap-2">
                 <button
@@ -268,7 +298,7 @@ export default function Home() {
                       : 'text-zinc-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  <span>Action Required</span>
+                  <span>Content &amp; Requirements Matrix</span>
                   {pendingCount > 0 && (
                     <span className="rounded-full bg-amber-500/20 px-1.5 py-0.2 text-[10px] font-mono text-amber-300 font-bold">
                       {pendingCount}
@@ -366,8 +396,9 @@ export default function Home() {
 
             {clientTab === 'preview' && (
               <PrototypePreviewStudio
-                prototypeUrl={project.prototypeUrl || 'https://kalajay.theluxestudio.in/'}
+                prototypeUrl={project.prototypeUrl || 'https://staging.theluxestudio.in/'}
                 projectId={project.id}
+                projectName={project.name}
                 feedbacks={project.feedbacks}
                 onFeedbackSubmit={handleFeedbackSubmit}
                 onFeedbackResolve={handleFeedbackResolve}
@@ -381,6 +412,10 @@ export default function Home() {
                 onRequirementSubmit={handleRequirementSubmit}
                 onRequirementReview={handleRequirementReview}
                 isInternalUser={isInternal}
+                projectId={project.id}
+                projectName={project.name}
+                currentUser={currentUser}
+                onReload={fetchData}
               />
             )}
 
@@ -405,7 +440,8 @@ export default function Home() {
               <HypercareTracker project={project} />
             )}
           </div>
-        ) : (
+        )
+      ) : (
           /* Admin Surface Container */
           <div className="space-y-6">
             <div className="flex items-center justify-between border-b border-white/[0.08] pb-3 text-xs">
@@ -424,19 +460,22 @@ export default function Home() {
 
                 <button
                   onClick={() => setAdminView('workspace')}
+                  disabled={!project}
                   className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 font-medium transition ${
                     adminView === 'workspace'
                       ? 'bg-[#C9A56A] text-black font-semibold shadow'
+                      : !project
+                      ? 'opacity-40 cursor-not-allowed text-zinc-500'
                       : 'text-zinc-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
                   <Sliders className="h-3.5 w-3.5" />
-                  <span>Milestone Gates &amp; SMTP ({project.name})</span>
+                  <span>Milestone Gates &amp; SMTP {project ? `(${project.name})` : ''}</span>
                 </button>
               </div>
             </div>
 
-            {adminView === 'portfolio' ? (
+            {adminView === 'portfolio' || !project ? (
               <ProjectPortfolioHub
                 currentUser={currentUser}
                 projects={projects}
@@ -464,7 +503,7 @@ export default function Home() {
       {/* Brand Footer */}
       <footer className="mt-16 border-t border-white/[0.06] py-6 text-center text-[11px] text-zinc-500 font-mono">
         <p>
-          LUXEOS &middot; LuxeStudio Operations Engine &middot; Active Project: {project.name}
+          LUXEOS &middot; LuxeStudio Operations Engine &middot; Active Accounts: {projects.length}
         </p>
       </footer>
     </div>

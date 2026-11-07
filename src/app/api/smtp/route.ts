@@ -68,7 +68,7 @@ export async function PATCH(request: Request) {
         passwordEncrypted: password ? encryptSecret(password) : '',
         fromEmail: fromEmail || 'notifications@theluxestudio.in',
         fromName: fromName || 'LuxeStudio Operations',
-        replyTo: replyTo || 'support@theluxestudio.in',
+        replyTo: replyTo || 'hello@theluxestudio.in',
       },
     });
 

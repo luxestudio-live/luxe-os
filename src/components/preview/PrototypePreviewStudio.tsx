@@ -20,6 +20,7 @@ import {
 interface PrototypePreviewStudioProps {
   prototypeUrl: string;
   projectId: string;
+  projectName?: string;
   feedbacks: PrototypeFeedbackData[];
   onFeedbackSubmit: (feedback: any) => Promise<void>;
   onFeedbackResolve?: (id: string, notes: string) => Promise<void>;
@@ -29,6 +30,7 @@ interface PrototypePreviewStudioProps {
 export function PrototypePreviewStudio({
   prototypeUrl,
   projectId,
+  projectName = 'Staging',
   feedbacks,
   onFeedbackSubmit,
   onFeedbackResolve,
@@ -196,14 +198,14 @@ export function PrototypePreviewStudio({
           <iframe
             src={prototypeUrl}
             className="w-full h-full border-0 bg-[#0B0B0D]"
-            title="Kalajay Prototype Preview"
+            title={`${projectName} Prototype Preview`}
             loading="lazy"
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
           />
 
           {/* Floating Fallback Launch Card at bottom */}
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-[#171719]/90 px-4 py-1.5 shadow-2xl backdrop-blur-md flex items-center gap-3 text-xs">
-            <span className="text-zinc-300">Viewing Kalajay Staging Prototype</span>
+            <span className="text-zinc-300">Viewing {projectName} Staging Prototype</span>
             <a
               href={prototypeUrl}
               target="_blank"
@@ -224,7 +226,7 @@ export function PrototypePreviewStudio({
               Design &amp; Prototype Feedback Log ({feedbacks.length})
             </h3>
             <p className="text-xs text-zinc-400">
-              Track decisions, refinements, and UX review points between Kalajay and LuxeStudio.
+              Track decisions, refinements, and UX review points between {projectName} and LuxeStudio.
             </p>
           </div>
           <button
@@ -324,7 +326,7 @@ export function PrototypePreviewStudio({
                   value={pageUrl}
                   onChange={(e) => setPageUrl(e.target.value)}
                   className="w-full rounded-lg border border-white/10 bg-[#0B0B0D] px-3 py-2 text-white placeholder-zinc-600 focus:border-[#C9A56A] focus:outline-none"
-                  placeholder="https://kalajay.theluxestudio.in/products/..."
+                  placeholder="https://staging.theluxestudio.in/products/..."
                 />
               </div>
 

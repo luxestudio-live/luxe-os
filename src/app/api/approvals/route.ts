@@ -31,7 +31,7 @@ export async function POST(request: Request) {
         subject,
         description,
         deliverableVersion: deliverableVersion || 'v1.0',
-        requestedFrom: requestedFrom || 'Kalajay Executive Stakeholder',
+        requestedFrom: requestedFrom || 'Client Executive Stakeholder',
         requestedRole: 'CLIENT_OWNER',
         status: 'PENDING',
       },

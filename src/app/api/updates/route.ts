@@ -25,7 +25,7 @@ export async function POST(request: Request) {
         content,
         type: type || 'PROGRESS',
         isInternalOnly: Boolean(isInternalOnly),
-        authorName: user?.name || 'Kabir Mehta (LuxeStudio PM)',
+        authorName: user?.name || 'LuxeStudio Core Team',
       },
     });
 

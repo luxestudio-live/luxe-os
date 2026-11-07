@@ -145,14 +145,12 @@ export default function AdminPage() {
       {/* Top Header */}
       <Header
         currentUser={currentUser}
-        availableUsers={availableUsers}
         activeSurface="admin"
         setActiveSurface={(surface) => {
           if (surface === 'client') {
             router.push('/');
           }
         }}
-        onUserSwitch={handleUserSwitch}
         pendingActionsCount={pendingCount}
         availableProjects={projects}
         activeProjectId={project.id}

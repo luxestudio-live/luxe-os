@@ -6,18 +6,23 @@ import bcrypt from 'bcryptjs';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, password } = body;
+    const { email, username, identifier, password } = body;
+    const loginIdentifier = (identifier || username || email || '').trim().toLowerCase();
 
-    if (!email || !password) {
+    if (!loginIdentifier || !password) {
       return NextResponse.json(
-        { error: 'Email and password are required' },
+        { error: 'User ID or Email and password are required' },
         { status: 400 }
       );
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
-    const user = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
+    let user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: loginIdentifier },
+          { username: loginIdentifier },
+        ],
+      },
       include: {
         memberships: {
           include: { organization: true },
@@ -25,18 +30,47 @@ export async function POST(request: Request) {
       },
     });
 
+    if (!user && (
+      loginIdentifier === 'admin' ||
+      loginIdentifier === 'rahul' ||
+      loginIdentifier === 'admin@theluxestudio.in' || 
+      loginIdentifier === 'rahul@theluxestudio.in' || 
+      loginIdentifier === 'rahul.kushwaha@theluxestudio.in'
+    )) {
+      user = await prisma.user.findFirst({
+        where: { role: 'SUPER_ADMIN' },
+        include: {
+          memberships: {
+            include: { organization: true },
+          },
+        },
+      });
+    }
+
+    if (!user && (
+      loginIdentifier === 'nitin' ||
+      loginIdentifier === 'nitin@theluxestudio.in' || 
+      loginIdentifier === 'nitin.chandnani@theluxestudio.in'
+    )) {
+      user = await prisma.user.findFirst({
+        where: { role: 'LUXE_PM' },
+        include: {
+          memberships: {
+            include: { organization: true },
+          },
+        },
+      });
+    }
+
     if (!user) {
       return NextResponse.json(
-        { error: 'Invalid email or password' },
+        { error: 'Invalid User ID or password' },
         { status: 401 }
       );
     }
 
-    // Compare bcrypt password hash (or fallback for demo accounts)
-    const isPasswordValid =
-      (await bcrypt.compare(password, user.passwordHash)) ||
-      password === 'Password123!' ||
-      password === 'admin123';
+    // Compare bcrypt password hash securely
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
       return NextResponse.json(

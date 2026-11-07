@@ -34,6 +34,7 @@ DROP TABLE IF EXISTS "User" CASCADE;
 CREATE TABLE "User" (
     "id" TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::TEXT,
     "email" TEXT UNIQUE NOT NULL,
+    "username" TEXT UNIQUE,
     "name" TEXT NOT NULL,
     "passwordHash" TEXT NOT NULL,
     "role" TEXT NOT NULL DEFAULT 'CLIENT_COLLABORATOR',
@@ -138,6 +139,14 @@ CREATE TABLE "Requirement" (
     "id" TEXT PRIMARY KEY DEFAULT uuid_generate_v4()::TEXT,
     "projectId" TEXT NOT NULL REFERENCES "Project"("id") ON DELETE CASCADE,
     "milestoneId" TEXT REFERENCES "Milestone"("id"),
+    "sequence" INTEGER NOT NULL DEFAULT 0,
+    "pageRoute" TEXT,
+    "sectionComponent" TEXT,
+    "specificRequirement" TEXT,
+    "currentDraft" TEXT,
+    "clientInput" TEXT,
+    "assetUrl" TEXT,
+    "guidelines" TEXT,
     "title" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "type" TEXT NOT NULL DEFAULT 'TEXT',
@@ -354,46 +363,13 @@ CREATE INDEX "idx_deliverable_project" ON "Deliverable"("projectId");
 CREATE INDEX "idx_uat_project" ON "UatIssue"("projectId");
 CREATE INDEX "idx_email_queue_status" ON "EmailQueue"("status");
 
--- 10. Initial Seed Data (Studio Owner, Nitin, Kalajay & Pilot Milestones)
+-- 10. Clean Studio Organization & Leadership
 INSERT INTO "Organization" ("id", "name", "slug", "brandColor")
-VALUES 
-    ('3a232c76-3bce-4a58-8777-59b905b415b8', 'LuxeStudio Internal', 'luxestudio', '#C9A56A'),
-    ('6c28118d-3f64-4178-93bc-323298995e76', 'Kalajay', 'kalajay', '#C9A56A');
-
--- Default bcrypt password for Password123!
-INSERT INTO "User" ("id", "email", "name", "passwordHash", "role", "activeOrgId")
-VALUES
-    ('f00b0225-1014-4dbc-bc22-7557edab61bb', 'admin@theluxestudio.in', 'Studio Owner (You)', '$2a$10$wE7YyO3YpDqv5t7cQ3.V8ekj234oWvK8j.dFp07a2L30g97dFk4Oa', 'SUPER_ADMIN', '3a232c76-3bce-4a58-8777-59b905b415b8'),
-    ('104b4389-210b-4028-a668-3640bb433c91', 'nitin@theluxestudio.in', 'Nitin', '$2a$10$wE7YyO3YpDqv5t7cQ3.V8ekj234oWvK8j.dFp07a2L30g97dFk4Oa', 'LUXE_PM', '3a232c76-3bce-4a58-8777-59b905b415b8'),
-    ('221b0225-1014-4dbc-bc22-7557edab61cc', 'owner@kalajay.com', 'Rohan Jaikishan', '$2a$10$wE7YyO3YpDqv5t7cQ3.V8ekj234oWvK8j.dFp07a2L30g97dFk4Oa', 'CLIENT_OWNER', '6c28118d-3f64-4178-93bc-323298995e76');
-
-INSERT INTO "Project" ("id", "organizationId", "name", "slug", "description", "category", "status", "currentPhase", "assignedPmId", "assignedPmName", "overallProgress", "targetDate", "prototypeUrl", "stagingUrl")
-VALUES (
-    '41c8f1a5-f61c-4c7f-9e00-70a960844bbd',
-    '6c28118d-3f64-4178-93bc-323298995e76',
-    'Kalajay E-Commerce & ERP Integration',
-    'kalajay-ecommerce',
-    'Develop and deploy the complete Kalajay e-commerce website based on the approved prototype, integrate existing ERP, and transfer deliverables.',
-    'Custom E-Commerce & ERP Integration',
-    'IN_PROGRESS',
-    'Phase 2: ERP Review & Priority Integration',
-    '104b4389-210b-4028-a668-3640bb433c91',
-    'Nitin',
-    18,
-    '2026-11-30 00:00:00',
-    'https://kalajay.theluxestudio.in/',
-    'https://staging-kalajay.theluxestudio.in/'
-);
-
--- Seed Milestones
-INSERT INTO "Milestone" ("id", "projectId", "sequence", "title", "phase", "status", "progress", "targetDate", "description", "deliverablesSummary", "responsibleTeam", "clientActionRequired")
-VALUES
-    ('9bdf278-9524-4a55-ab19-81c146009186', '41c8f1a5-f61c-4c7f-9e00-70a960844bbd', 1, 'Website prototype', 'Design & Prototyping', 'COMPLETED', 100, '2026-11-05 00:00:00', 'Initial premium e-commerce prototype prepared and approved for further implementation.', 'Interactive high-fidelity Figma prototype & deployed web demonstration.', 'LuxeStudio Design Engineering', FALSE),
-    ('853a3b09-14ec-4831-bc18-b88443e5188a', '41c8f1a5-f61c-4c7f-9e00-70a960844bbd', 2, 'ERP review and priority integration', 'Architecture & Integrations', 'IN_PROGRESS', 35, '2026-11-14 00:00:00', 'Obtain ERP source code, review architecture, inspect database schema, map product/order entities, and validate initial connectivity.', 'ERP API specification, schema mapping matrix, priority sync connector.', 'Nitin & Backend Team', TRUE),
-    ('0acbe7d4-3bd4-4a99-8884-242042fc834b', '41c8f1a5-f61c-4c7f-9e00-70a960844bbd', 3, 'Full website functionality and service integrations', 'Full-Stack Development', 'SCHEDULED', 0, '2026-11-25 00:00:00', 'Complete e-commerce journeys, shopping bag, checkout flow, OTP authentication, payment gateway, and transactional notifications.', 'Functional storefront, checkout pipeline, integrated payment webhook handler.', 'Nitin & Team', FALSE);
+VALUES ('3a232c76-3bce-4a58-8777-59b905b415b8', 'LuxeStudio', 'luxestudio', '#C9A56A')
+ON CONFLICT ("id") DO NOTHING;
 
 -- Seed SMTP Default record
 INSERT INTO "SmtpConfig" ("id", "host", "port", "encryption", "username", "fromEmail", "fromName", "replyTo", "isVerified")
-VALUES ('default', 'smtp.mailprovider.com', 587, 'STARTTLS', 'notifications@theluxestudio.in', 'notifications@theluxestudio.in', 'LuxeStudio Operations', 'support@theluxestudio.in', FALSE)
+VALUES ('default', 'smtp.mailprovider.com', 587, 'STARTTLS', 'notifications@theluxestudio.in', 'notifications@theluxestudio.in', 'LuxeStudio Operations', 'hello@theluxestudio.in', FALSE)
 ON CONFLICT ("id") DO NOTHING;
 

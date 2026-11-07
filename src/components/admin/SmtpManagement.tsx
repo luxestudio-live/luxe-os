@@ -348,7 +348,7 @@ export function SmtpManagement() {
                   required
                   value={replyTo}
                   onChange={(e) => setReplyTo(e.target.value)}
-                  placeholder="support@theluxestudio.in"
+                  placeholder="hello@theluxestudio.in"
                   className="w-full rounded-lg border border-white/10 bg-[#0B0B0D] px-3 py-2 text-white placeholder-zinc-600 focus:border-[#C9A56A] focus:outline-none"
                 />
               </div>

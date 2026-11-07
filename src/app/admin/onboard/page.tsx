@@ -92,14 +92,12 @@ export default function OnboardAndGistPage() {
       {/* Top Header */}
       <Header
         currentUser={currentUser}
-        availableUsers={availableUsers}
         activeSurface="admin"
         setActiveSurface={(surface) => {
           if (surface === 'client') {
             router.push('/');
           }
         }}
-        onUserSwitch={handleUserSwitch}
         pendingActionsCount={0}
         availableProjects={projects}
         activeProjectId={projects[0]?.id}
@@ -126,3 +124,4 @@ export default function OnboardAndGistPage() {
     </div>
   );
 }
+
