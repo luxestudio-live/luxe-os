@@ -15,6 +15,7 @@ model User {
   role             String   @default("CLIENT_COLLABORATOR") // SUPER_ADMIN, LUXE_PM, INTERNAL_TEAM, CLIENT_OWNER, CLIENT_COLLABORATOR, CLIENT_VIEWER
   avatar           String?
   activeOrgId      String?
+  mustChangePassword Boolean @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { FullProjectData, UserSession } from '@/lib/types';
 import { Header } from '@/components/navigation/Header';
 import { AdminWorkspace } from '@/components/admin/AdminWorkspace';
-import { Loader2 } from 'lucide-react';
+import { ProjectPortfolioHub } from '@/components/admin/ProjectPortfolioHub';
+import { Loader2, LayoutGrid, Sliders } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function AdminPage() {
@@ -14,6 +15,7 @@ export default function AdminPage() {
   const [projects, setProjects] = useState<any[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string>('default');
   const [project, setProject] = useState<FullProjectData | null>(null);
+  const [adminView, setAdminView] = useState<'portfolio' | 'workspace'>('portfolio');
   const [loading, setLoading] = useState(true);
 
   const fetchData = async (targetProjectId?: string) => {
@@ -158,15 +160,57 @@ export default function AdminPage() {
       />
 
       {/* Main Admin Surface */}
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <AdminWorkspace
-          project={project}
-          currentUser={currentUser}
-          onUpdateMilestone={handleUpdateMilestone}
-          onPublishUpdate={handlePublishUpdate}
-          onReload={fetchData}
-          availableUsers={availableUsers}
-        />
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+        {/* View Switcher Bar */}
+        <div className="flex items-center justify-between border-b border-white/[0.08] pb-3 text-xs">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setAdminView('portfolio')}
+              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 font-medium transition ${
+                adminView === 'portfolio'
+                  ? 'bg-[#C9A56A] text-black font-semibold shadow'
+                  : 'text-zinc-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              <span>Project Matrix &amp; Onboard Hub (Gist)</span>
+            </button>
+
+            <button
+              onClick={() => setAdminView('workspace')}
+              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 font-medium transition ${
+                adminView === 'workspace'
+                  ? 'bg-[#C9A56A] text-black font-semibold shadow'
+                  : 'text-zinc-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Sliders className="h-3.5 w-3.5" />
+              <span>Milestone Gates &amp; SMTP ({project.name})</span>
+            </button>
+          </div>
+        </div>
+
+        {adminView === 'portfolio' ? (
+          <ProjectPortfolioHub
+            currentUser={currentUser}
+            projects={projects}
+            availableUsers={availableUsers}
+            onSelectProject={(projId) => {
+              handleSelectProject(projId);
+              setAdminView('workspace');
+            }}
+            onReload={fetchData}
+          />
+        ) : (
+          <AdminWorkspace
+            project={project}
+            currentUser={currentUser}
+            onUpdateMilestone={handleUpdateMilestone}
+            onPublishUpdate={handlePublishUpdate}
+            onReload={fetchData}
+            availableUsers={availableUsers}
+          />
+        )}
       </main>
 
       {/* Brand Footer */}

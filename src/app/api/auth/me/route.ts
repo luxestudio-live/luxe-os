@@ -60,6 +60,7 @@ export async function GET(request: Request) {
         role: user.role,
         avatar: user.avatar,
         activeOrgId: activeOrg?.id,
+        mustChangePassword: user.mustChangePassword,
         organization: activeOrg,
       },
       availableUsers: availableUsers.map((u) => ({

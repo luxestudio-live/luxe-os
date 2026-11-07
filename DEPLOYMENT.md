@@ -94,3 +94,4 @@ Once deployed, visit `https://os.theluxestudio.in`:
 3. Click **"Test Handshake & Verify"**:
    - The server performs an encrypted handshake and sends a test transmission to your inbox.
    - All client notifications, milestone sign-offs, and requirement alerts will dispatch through your verified mail server.
+

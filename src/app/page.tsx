@@ -11,6 +11,7 @@ import { DocumentCentre } from '@/components/documents/DocumentCentre';
 import { UatIssueTracker } from '@/components/uat/UatIssueTracker';
 import { HypercareTracker } from '@/components/hypercare/HypercareTracker';
 import { AdminWorkspace } from '@/components/admin/AdminWorkspace';
+import { ProjectPortfolioHub } from '@/components/admin/ProjectPortfolioHub';
 import {
   Compass,
   Layers,
@@ -21,6 +22,8 @@ import {
   Clock,
   ChevronDown,
   Loader2,
+  LayoutGrid,
+  Sliders,
 } from 'lucide-react';
 
 export default function Home() {
@@ -31,6 +34,7 @@ export default function Home() {
   const [project, setProject] = useState<FullProjectData | null>(null);
   const [activeSurface, setActiveSurface] = useState<'client' | 'admin'>('client');
   const [clientTab, setClientTab] = useState<'overview' | 'timeline' | 'preview' | 'actions' | 'documents' | 'uat' | 'hypercare'>('overview');
+  const [adminView, setAdminView] = useState<'portfolio' | 'workspace'>('portfolio');
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -402,15 +406,58 @@ export default function Home() {
             )}
           </div>
         ) : (
-          /* Admin Workspace Surface */
-          <AdminWorkspace
-            project={project}
-            currentUser={currentUser}
-            onUpdateMilestone={handleUpdateMilestone}
-            onPublishUpdate={handlePublishUpdate}
-            onReload={fetchData}
-            availableUsers={availableUsers}
-          />
+          /* Admin Surface Container */
+          <div className="space-y-6">
+            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3 text-xs">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setAdminView('portfolio')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 font-medium transition ${
+                    adminView === 'portfolio'
+                      ? 'bg-[#C9A56A] text-black font-semibold shadow'
+                      : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                  <span>Onboard &amp; Project Matrix (Gist)</span>
+                </button>
+
+                <button
+                  onClick={() => setAdminView('workspace')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 font-medium transition ${
+                    adminView === 'workspace'
+                      ? 'bg-[#C9A56A] text-black font-semibold shadow'
+                      : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Sliders className="h-3.5 w-3.5" />
+                  <span>Milestone Gates &amp; SMTP ({project.name})</span>
+                </button>
+              </div>
+            </div>
+
+            {adminView === 'portfolio' ? (
+              <ProjectPortfolioHub
+                currentUser={currentUser}
+                projects={projects}
+                availableUsers={availableUsers}
+                onSelectProject={(projId) => {
+                  handleSelectProject(projId);
+                  setAdminView('workspace');
+                }}
+                onReload={fetchData}
+              />
+            ) : (
+              <AdminWorkspace
+                project={project}
+                currentUser={currentUser}
+                onUpdateMilestone={handleUpdateMilestone}
+                onPublishUpdate={handlePublishUpdate}
+                onReload={fetchData}
+                availableUsers={availableUsers}
+              />
+            )}
+          </div>
         )}
       </main>
 

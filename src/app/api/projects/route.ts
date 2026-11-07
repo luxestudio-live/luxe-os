@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
+import bcrypt from 'bcryptjs';
 
 export async function GET(request: Request) {
   try {
@@ -78,6 +79,10 @@ export async function POST(request: Request) {
       targetDate,
       prototypeUrl,
       assignedPmId, // Only respected if user is SUPER_ADMIN
+      clientEmail,
+      clientContactName,
+      customPassword,
+      hypercareDays = 14,
     } = body;
 
     if (!clientName || !projectName) {
@@ -126,10 +131,39 @@ export async function POST(request: Request) {
         currentPhase: 'Phase 1: Discovery & Architecture',
         overallProgress: 5,
         targetDate: targetDate ? new Date(targetDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        hypercareDays: Number(hypercareDays) || 14,
         prototypeUrl,
         assignedPmId: finalAssignedPmId,
         assignedPmName: finalAssignedPmName,
         createdById: user.id,
+      },
+    });
+
+    // Generate or use credentials for client user
+    const finalClientEmail = (clientEmail || `${clientName.toLowerCase().replace(/[^a-z0-9]/g, '')}@example.com`).trim().toLowerCase();
+    const temporaryPassword = customPassword || `Luxe-${Math.floor(1000 + Math.random() * 9000)}!`;
+    const passwordHash = await bcrypt.hash(temporaryPassword, 10);
+
+    let clientUser = await prisma.user.findUnique({ where: { email: finalClientEmail } });
+    if (!clientUser) {
+      clientUser = await prisma.user.create({
+        data: {
+          email: finalClientEmail,
+          name: clientContactName || `${clientName} Representative`,
+          passwordHash,
+          role: 'CLIENT_OWNER',
+          activeOrgId: org.id,
+          mustChangePassword: true,
+        },
+      });
+    }
+
+    // Create organization membership
+    await prisma.organizationMembership.create({
+      data: {
+        organizationId: org.id,
+        userId: clientUser.id,
+        role: 'OWNER',
       },
     });
 
@@ -161,7 +195,7 @@ export async function POST(request: Request) {
           phase: 'Handover',
           status: 'SCHEDULED',
           progress: 0,
-          description: 'Quality verification, deployment, and 14-day hypercare support.',
+          description: `Quality verification, deployment, and ${project.hypercareDays}-day hypercare support.`,
         },
       ],
     });
@@ -174,11 +208,21 @@ export async function POST(request: Request) {
         action: 'ONBOARD_PROJECT',
         entityType: 'Project',
         entityId: project.id,
-        details: `Created project "${project.name}" for "${org.name}", assigned to ${finalAssignedPmName}`,
+        details: `Created project "${project.name}" for "${org.name}", assigned to ${finalAssignedPmName}. Client credentials generated for ${finalClientEmail}`,
       },
     });
 
-    return NextResponse.json({ success: true, project });
+    return NextResponse.json({
+      success: true,
+      project,
+      credentials: {
+        email: finalClientEmail,
+        temporaryPassword,
+        name: clientUser.name,
+        portalUrl: `${process.env.APP_URL || 'https://os.theluxestudio.in'}/login`,
+        mustChangePassword: true,
+      },
+    });
   } catch (error: any) {
     console.error('Error onboarding project:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

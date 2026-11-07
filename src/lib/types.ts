@@ -13,6 +13,7 @@ export interface UserSession {
   role: UserRole;
   avatar?: string | null;
   activeOrgId?: string | null;
+  mustChangePassword?: boolean;
   organization?: {
     id: string;
     name: string;

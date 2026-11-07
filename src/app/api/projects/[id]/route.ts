@@ -79,6 +79,105 @@ export async function GET(
   }
 }
 
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const cookieStore = await cookies();
+    const activeUserId = request.headers.get('x-user-id') || cookieStore.get('luxe_user_id')?.value;
+
+    const user = activeUserId
+      ? await prisma.user.findUnique({ where: { id: activeUserId } })
+      : await prisma.user.findFirst({ where: { role: 'SUPER_ADMIN' } });
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const existingProject = await prisma.project.findUnique({ where: { id } });
+    if (!existingProject) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    // Role verification: Nitin can only mutate assigned projects
+    if (
+      user.role === 'LUXE_PM' &&
+      existingProject.assignedPmId !== user.id &&
+      existingProject.createdById !== user.id
+    ) {
+      return NextResponse.json(
+        { error: 'Access Denied: You cannot update this project.' },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+    const {
+      status,
+      currentPhase,
+      targetDate,
+      goLiveDate,
+      hypercareDays,
+      overallProgress,
+      prototypeUrl,
+      stagingUrl,
+      productionUrl,
+      assignedPmId,
+    } = body;
+
+    const updateData: any = {};
+
+    if (status !== undefined) {
+      updateData.status = status;
+      // If moving to HYPERCARE and goLiveDate is not set, auto-set to current date
+      if (status === 'HYPERCARE' && !existingProject.goLiveDate && !goLiveDate) {
+        updateData.goLiveDate = new Date();
+      }
+    }
+
+    if (currentPhase !== undefined) updateData.currentPhase = currentPhase;
+    if (targetDate !== undefined) updateData.targetDate = targetDate ? new Date(targetDate) : null;
+    if (goLiveDate !== undefined) updateData.goLiveDate = goLiveDate ? new Date(goLiveDate) : null;
+    if (hypercareDays !== undefined) updateData.hypercareDays = Number(hypercareDays);
+    if (overallProgress !== undefined) updateData.overallProgress = Number(overallProgress);
+    if (prototypeUrl !== undefined) updateData.prototypeUrl = prototypeUrl;
+    if (stagingUrl !== undefined) updateData.stagingUrl = stagingUrl;
+    if (productionUrl !== undefined) updateData.productionUrl = productionUrl;
+
+    if (user.role === 'SUPER_ADMIN' && assignedPmId !== undefined) {
+      const pm = await prisma.user.findUnique({ where: { id: assignedPmId } });
+      if (pm) {
+        updateData.assignedPmId = pm.id;
+        updateData.assignedPmName = pm.name;
+      }
+    }
+
+    const updatedProject = await prisma.project.update({
+      where: { id },
+      data: updateData,
+    });
+
+    // Create Audit Log
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        userEmail: user.email,
+        action: 'UPDATE_PROJECT_TIMELINE',
+        entityType: 'Project',
+        entityId: id,
+        details: `Updated timeline/status to ${updatedProject.status}, Hypercare: ${updatedProject.hypercareDays} days, Go-Live: ${updatedProject.goLiveDate}`,
+      },
+    });
+
+    return NextResponse.json({ success: true, project: updatedProject });
+  } catch (error: any) {
+    console.error('Error updating project:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 function getProjectIncludes(isInternal: boolean) {
   return {
     organization: true,

@@ -39,6 +39,7 @@ CREATE TABLE "User" (
     "role" TEXT NOT NULL DEFAULT 'CLIENT_COLLABORATOR',
     "avatar" TEXT,
     "activeOrgId" TEXT,
+    "mustChangePassword" BOOLEAN NOT NULL DEFAULT FALSE,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -395,3 +396,4 @@ VALUES
 INSERT INTO "SmtpConfig" ("id", "host", "port", "encryption", "username", "fromEmail", "fromName", "replyTo", "isVerified")
 VALUES ('default', 'smtp.mailprovider.com', 587, 'STARTTLS', 'notifications@theluxestudio.in', 'notifications@theluxestudio.in', 'LuxeStudio Operations', 'support@theluxestudio.in', FALSE)
 ON CONFLICT ("id") DO NOTHING;
+
