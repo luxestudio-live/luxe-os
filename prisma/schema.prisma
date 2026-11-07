@@ -1,0 +1,385 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id @default(uuid())
+  email            String   @unique
+  name             String
+  passwordHash     String
+  role             String   @default("CLIENT_COLLABORATOR") // SUPER_ADMIN, LUXE_PM, INTERNAL_TEAM, CLIENT_OWNER, CLIENT_COLLABORATOR, CLIENT_VIEWER
+  avatar           String?
+  activeOrgId      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  memberships      OrganizationMembership[]
+  notifications    Notification[]
+  auditLogs        AuditLog[]
+}
+
+model Organization {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  brandColor  String   @default("#C9A56A")
+  logoUrl     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  memberships OrganizationMembership[]
+  projects    Project[]
+}
+
+model OrganizationMembership {
+  id             String       @id @default(uuid())
+  organizationId String
+  userId         String
+  role           String       // OWNER, COLLABORATOR, VIEWER
+  createdAt      DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+}
+
+model Project {
+  id             String       @id @default(uuid())
+  organizationId String
+  name           String
+  slug           String       @unique
+  description    String
+  category       String       @default("E-Commerce & Custom Software")
+  status         String       @default("IN_PROGRESS") // DISCOVERY, DESIGN, DEVELOPMENT, INTEGRATION, UAT, LAUNCH_PREP, LIVE, HYPERCARE, MAINTENANCE, ARCHIVED
+  currentPhase   String       @default("Phase 2: ERP Review & Integration")
+  assignedPmId   String?
+  assignedPmName String?
+  createdById    String?
+  overallProgress Int         @default(15) // Percentage calculated from weighted milestones
+  targetDate     DateTime?
+  goLiveDate     DateTime?
+  hypercareDays  Int          @default(14)
+  prototypeUrl   String?
+  stagingUrl     String?
+  productionUrl  String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  milestones     Milestone[]
+  requirements   Requirement[]
+  deliverables   Deliverable[]
+  documents      Document[]
+  feedbacks      PrototypeFeedback[]
+  approvals      ApprovalRequest[]
+  uatIssues      UatIssue[]
+  maintenance    MaintenanceRecord[]
+  discussions    DiscussionThread[]
+  updates        ProjectUpdate[]
+  meetings       MeetingDecision[]
+}
+
+model Milestone {
+  id                    String    @id @default(uuid())
+  projectId             String
+  sequence              Int
+  title                 String
+  phase                 String
+  status                String    @default("PLANNED") // NOT_STARTED, SCHEDULED, IN_PROGRESS, AWAITING_CLIENT, UNDER_REVIEW, BLOCKED, COMPLETED, DELAYED, CANCELLED
+  progress              Int       @default(0)
+  targetDate            DateTime?
+  startDate             DateTime?
+  completedDate         DateTime?
+  description           String
+  deliverablesSummary   String?
+  responsibleTeam       String    @default("LuxeStudio Core Team")
+  blockers              String?
+  clientActionRequired  Boolean   @default(false)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  project               Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks                 Task[]
+  requirements          Requirement[]
+  deliverables          Deliverable[]
+  documents             Document[]
+  approvals             ApprovalRequest[]
+  uatIssues             UatIssue[]
+  updates               ProjectUpdate[]
+}
+
+model Task {
+  id          String    @id @default(uuid())
+  milestoneId String
+  title       String
+  isCompleted Boolean   @default(false)
+  assignedTo  String?
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+}
+
+model Deliverable {
+  id          String    @id @default(uuid())
+  projectId   String
+  milestoneId String?
+  title       String
+  description String?
+  status      String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  fileUrl     String?
+  version     String    @default("v1.0")
+  approvedAt  DateTime?
+  approvedBy  String?
+  createdAt   DateTime  @default(now())
+
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestone   Milestone? @relation(fields: [milestoneId], references: [id])
+}
+
+model Requirement {
+  id              String    @id @default(uuid())
+  projectId       String
+  milestoneId     String?
+  title           String
+  description     String
+  type            String    @default("TEXT") // TEXT, LONG_TEXT, FILE, CREDENTIALS_DELEGATION, URL, CONFIRMATION
+  isMandatory     Boolean   @default(true)
+  status          String    @default("PENDING") // PENDING, SUBMITTED, ACCEPTED, NEEDS_REVISION
+  dueDate         DateTime?
+  value           String?
+  fileUrl         String?
+  submittedAt     DateTime?
+  submittedBy     String?
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  rejectionReason String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestone       Milestone? @relation(fields: [milestoneId], references: [id])
+}
+
+model Document {
+  id              String    @id @default(uuid())
+  projectId       String
+  milestoneId     String?
+  name            String
+  category        String    @default("GENERAL") // AGREEMENTS, SCOPE, TIMELINE, BRAND_ASSETS, REQUIREMENTS, TECH_DOCS, MEETING_NOTES, UAT_REPORTS, HANDOVER
+  fileUrl         String
+  fileSize        String    @default("0 KB")
+  fileType        String    @default("application/pdf")
+  version         String    @default("v1.0")
+  isInternalOnly  Boolean   @default(false)
+  uploadedBy      String
+  acknowledgedAt  DateTime?
+  acknowledgedBy  String?
+  createdAt       DateTime  @default(now())
+
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestone       Milestone? @relation(fields: [milestoneId], references: [id])
+}
+
+model PrototypeFeedback {
+  id              String    @id @default(uuid())
+  projectId       String
+  pageUrl         String
+  environment     String    @default("Prototype")
+  category        String    @default("UI/UX") // UI/UX, FUNCTIONALITY, CONTENT, PERFORMANCE, RESPONSIVE
+  priority        String    @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  description     String
+  screenshotUrl   String?
+  status          String    @default("NEW") // NEW, TRIAGED, ACCEPTED, RESOLVED, REJECTED
+  resolutionNotes String?
+  submittedBy     String
+  resolvedBy      String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ApprovalRequest {
+  id                 String    @id @default(uuid())
+  projectId          String
+  milestoneId        String?
+  subject            String
+  description        String
+  deliverableVersion String    @default("v1.0")
+  status             String    @default("PENDING") // PENDING, APPROVED, CHANGES_REQUESTED
+  requestedFrom      String
+  requestedRole      String    @default("CLIENT_OWNER")
+  deadline           DateTime?
+  decidedAt          DateTime?
+  decidedBy          String?
+  decisionNotes      String?
+  createdAt          DateTime  @default(now())
+
+  project            Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestone          Milestone? @relation(fields: [milestoneId], references: [id])
+}
+
+model UatIssue {
+  id              String    @id @default(uuid())
+  projectId       String
+  milestoneId     String?
+  title           String
+  description     String
+  environment     String    @default("Staging")
+  pageUrl         String?
+  severity        String    @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  status          String    @default("NEW") // NEW, TRIAGED, IN_PROGRESS, AWAITING_INFO, READY_FOR_RETEST, RESOLVED, CLOSED
+  assignedTo      String?
+  submittedBy     String
+  resolutionNotes String?
+  verifiedBy      String?
+  clientConfirmed Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestone       Milestone? @relation(fields: [milestoneId], references: [id])
+}
+
+model MaintenanceRecord {
+  id              String    @id @default(uuid())
+  projectId       String
+  type            String    @default("SUPPORT") // INCLUDED_MAINTENANCE, BUG_FIX, CHANGE_REQUEST, HEALTH_CHECK
+  title           String
+  description     String
+  status          String    @default("OPEN") // OPEN, IN_REVIEW, APPROVED, IN_PROGRESS, COMPLETED
+  effortHours     Int?
+  proposedCost    String?
+  isApproved      Boolean   @default(false)
+  approvedBy      String?
+  approvedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model DiscussionThread {
+  id              String    @id @default(uuid())
+  projectId       String
+  milestoneId     String?
+  title           String
+  isInternalOnly  Boolean   @default(false)
+  createdBy       String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  messages        DiscussionMessage[]
+}
+
+model DiscussionMessage {
+  id              String    @id @default(uuid())
+  threadId        String
+  authorId        String
+  authorName      String
+  authorRole      String
+  content         String
+  attachmentUrl   String?
+  createdAt       DateTime  @default(now())
+
+  thread          DiscussionThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+}
+
+model ProjectUpdate {
+  id              String    @id @default(uuid())
+  projectId       String
+  milestoneId     String?
+  title           String
+  content         String
+  type            String    @default("PROGRESS") // PROGRESS, MILESTONE_COMPLETE, DEADLINE_CHANGE, NOTICE
+  isInternalOnly  Boolean   @default(false)
+  authorName      String
+  createdAt       DateTime  @default(now())
+
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestone       Milestone? @relation(fields: [milestoneId], references: [id])
+}
+
+model MeetingDecision {
+  id              String    @id @default(uuid())
+  projectId       String
+  subject         String
+  meetingDate     DateTime
+  meetingUrl      String?
+  attendees       String
+  summary         String
+  decisions       String
+  actionItems     String
+  createdAt       DateTime  @default(now())
+
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String?
+  title       String
+  message     String
+  type        String   @default("INFO") // INFO, APPROVAL, DEADLINE, WARNING, SUCCESS
+  link        String?
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SmtpConfig {
+  id                String    @id @default("default")
+  host              String    @default("smtp.mailprovider.com")
+  port              Int       @default(587)
+  encryption        String    @default("STARTTLS") // NONE, SSL_TLS, STARTTLS
+  username          String    @default("notifications@theluxestudio.in")
+  passwordEncrypted String    @default("")
+  fromEmail         String    @default("notifications@theluxestudio.in")
+  fromName          String    @default("LuxeStudio Operations")
+  replyTo           String    @default("support@theluxestudio.in")
+  isVerified        Boolean   @default(false)
+  lastTestedAt      DateTime?
+  testStatus        String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model EmailQueue {
+  id           String    @id @default(uuid())
+  toEmail      String
+  toName       String
+  subject      String
+  bodyHtml     String
+  bodyText     String?
+  eventType    String    @default("GENERAL")
+  status       String    @default("PENDING") // PENDING, SENT, FAILED
+  attempts     Int       @default(0)
+  lastError    String?
+  queuedAt     DateTime  @default(now())
+  sentAt       DateTime?
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  userEmail  String
+  action     String
+  entityType String
+  entityId   String?
+  details    String?
+  ipAddress  String?  @default("127.0.0.1")
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id])
+}
+
