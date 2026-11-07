@@ -9,6 +9,7 @@ import {
   Check,
   FolderKanban,
   Sparkles,
+  LogOut,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -58,6 +59,16 @@ export function Header({
   };
 
   const currentProject = availableProjects.find((p) => p.id === activeProjectId) || availableProjects[0];
+
+  const handleSignOut = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      window.location.href = '/login';
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/[0.06] bg-[#0B0B0D]/90 backdrop-blur-md">
@@ -194,6 +205,16 @@ export function Header({
                     {u.id === currentUser.id && <Check className="h-3.5 w-3.5 text-[#C9A56A]" />}
                   </button>
                 ))}
+              </div>
+
+              <div className="mt-2 border-t border-white/10 pt-1">
+                <button
+                  onClick={handleSignOut}
+                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-zinc-400 hover:bg-rose-500/10 hover:text-rose-300 transition text-xs"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  <span>Sign Out</span>
+                </button>
               </div>
             </div>
           )}

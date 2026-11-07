@@ -7,7 +7,7 @@ export async function GET(request: Request) {
     const cookieStore = await cookies();
     const activeUserId = cookieStore.get('luxe_user_id')?.value;
 
-    let user;
+    let user = null;
     if (activeUserId) {
       user = await prisma.user.findUnique({
         where: { id: activeUserId },
@@ -20,19 +20,21 @@ export async function GET(request: Request) {
     }
 
     if (!user) {
-      // Default to Super Admin for initial load
-      user = await prisma.user.findFirst({
-        where: { role: 'SUPER_ADMIN' },
-        include: {
-          memberships: {
-            include: { organization: true },
+      // In development fallback if no cookie is set yet
+      if (process.env.NODE_ENV !== 'production') {
+        user = await prisma.user.findFirst({
+          where: { role: 'SUPER_ADMIN' },
+          include: {
+            memberships: {
+              include: { organization: true },
+            },
           },
-        },
-      });
+        });
+      }
     }
 
     if (!user) {
-      return NextResponse.json({ error: 'No user found' }, { status: 404 });
+      return NextResponse.json({ user: null, error: 'Unauthorized' }, { status: 401 });
     }
 
     const availableUsers = await prisma.user.findMany({

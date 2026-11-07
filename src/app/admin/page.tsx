@@ -22,8 +22,19 @@ export default function AdminPage() {
       const authRes = await fetch('/api/auth/me');
       const authData = await authRes.json();
       if (authData.user) {
+        if (
+          authData.user.role === 'CLIENT_OWNER' ||
+          authData.user.role === 'CLIENT_COLLABORATOR' ||
+          authData.user.role === 'CLIENT_VIEWER'
+        ) {
+          router.push('/');
+          return;
+        }
         setCurrentUser(authData.user);
         setAvailableUsers(authData.availableUsers || []);
+      } else {
+        window.location.href = '/login';
+        return;
       }
 
       // 2. Fetch Scoped Projects

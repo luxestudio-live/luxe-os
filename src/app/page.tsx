@@ -42,6 +42,9 @@ export default function Home() {
       if (authData.user) {
         setCurrentUser(authData.user);
         setAvailableUsers(authData.availableUsers || []);
+      } else {
+        window.location.href = '/login';
+        return;
       }
 
       // 2. Fetch Scoped Projects
