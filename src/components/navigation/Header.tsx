@@ -88,7 +88,7 @@ export function Header({
                   className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#171719] px-2.5 py-1 text-xs text-white hover:border-[#C9A56A]/50 transition"
                 >
                   <span className="font-medium truncate max-w-[140px] sm:max-w-[200px]">
-                    {currentProject?.name || 'Select Project'}
+                    {currentProject?.name || (availableProjects.length === 0 ? 'No Projects Yet' : 'Select Project')}
                   </span>
                   {availableProjects.length > 1 && (
                     <span className="rounded bg-[#C9A56A]/20 px-1 py-0.2 text-[9px] font-mono text-[#C9A56A]">
@@ -105,25 +105,31 @@ export function Header({
                       <span>{isSuperAdmin ? 'Full Access' : 'Assigned Only'}</span>
                     </div>
                     <div className="mt-1 space-y-0.5">
-                      {availableProjects.map((p) => (
-                        <button
-                          key={p.id}
-                          onClick={() => {
-                            if (onSelectProject) onSelectProject(p.id);
-                            setProjectMenuOpen(false);
-                          }}
-                          className={`w-full flex items-center justify-between rounded-lg px-2.5 py-2 text-left transition ${
-                            p.id === currentProject?.id
-                              ? 'bg-[#C9A56A]/15 text-[#C9A56A] font-semibold'
-                              : 'text-zinc-300 hover:bg-white/5 hover:text-white'
-                          }`}
-                        >
-                          <div className="truncate pr-2">
-                            <div className="font-medium text-white truncate">{p.name}</div>
-                          </div>
-                          {p.id === currentProject?.id && <Check className="h-3.5 w-3.5 shrink-0 text-[#C9A56A]" />}
-                        </button>
-                      ))}
+                      {availableProjects.length === 0 ? (
+                        <div className="p-3 text-center text-[11px] text-zinc-400 font-mono">
+                          No active projects yet.
+                        </div>
+                      ) : (
+                        availableProjects.map((p) => (
+                          <button
+                            key={p.id}
+                            onClick={() => {
+                              if (onSelectProject) onSelectProject(p.id);
+                              setProjectMenuOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between rounded-lg px-2.5 py-2 text-left transition ${
+                              p.id === currentProject?.id
+                                ? 'bg-[#C9A56A]/15 text-[#C9A56A] font-semibold'
+                                : 'text-zinc-300 hover:bg-white/5 hover:text-white'
+                            }`}
+                          >
+                            <div className="truncate pr-2">
+                              <div className="font-medium text-white truncate">{p.name}</div>
+                            </div>
+                            {p.id === currentProject?.id && <Check className="h-3.5 w-3.5 shrink-0 text-[#C9A56A]" />}
+                          </button>
+                        ))
+                      )}
                     </div>
                   </div>
                 )}
