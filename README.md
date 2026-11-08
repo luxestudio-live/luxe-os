@@ -2,7 +2,7 @@
 
 **Product:** LuxeOS  
 **Company:** LuxeStudio (`https://theluxestudio.in`)  
-**Proposed Application URL:** `https://os.theluxestudio.in`
+**Proposed Application URL:** `https://client.theluxestudio.in`
 
 ---
 

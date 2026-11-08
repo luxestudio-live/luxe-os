@@ -1,7 +1,7 @@
 # LuxeOS Production Deployment Guide
 
 **Application:** LuxeOS  
-**Target Domain:** `https://os.theluxestudio.in`  
+**Target Domain:** `https://client.theluxestudio.in`  
 **Hosting Provider:** AWS Amplify Hosting (Gen 2 SSR)  
 **Database:** Supabase PostgreSQL  
 **Email Engine:** Admin-Managed Direct SMTP (Nodemailer)
@@ -46,7 +46,8 @@ git push -u origin main
 | `DATABASE_URL` | `postgresql://postgres...:6543/postgres?pgbouncer=true` | Supabase Pooler URI |
 | `DIRECT_URL` | `postgresql://postgres...:5432/postgres` | Supabase Direct URI |
 | `SMTP_ENCRYPTION_KEY` | *(Random 32-character string)* | AES-256 key for encrypted credentials |
-| `NEXT_PUBLIC_APP_URL` | `https://os.theluxestudio.in` | Production Base URL |
+| `APP_URL` | `https://client.theluxestudio.in` | Production Base URL |
+| `NEXT_PUBLIC_APP_URL` | `https://client.theluxestudio.in` | Production Base URL |
 | `NODE_ENV` | `production` | Production environment |
 
 5. Click **Save and Deploy**. AWS Amplify will run:
@@ -59,11 +60,11 @@ git push -u origin main
 
 ---
 
-## Step 4: Map Your Custom Domain (`os.theluxestudio.in`)
+## Step 4: Map Your Custom Domain (`client.theluxestudio.in`)
 
 1. In the AWS Amplify console, go to **App Settings &rarr; Domain management**.
 2. Click **Add domain** &rarr; enter `theluxestudio.in`.
-3. Configure the subdomain prefix: `os` &rarr; pointing to branch `main`.
+3. Configure the subdomain prefix: `client` &rarr; pointing to branch `main`.
 4. Copy the generated CNAME records into your DNS registrar (Cloudflare, GoDaddy, or Namecheap).
 5. AWS Amplify will automatically provision a free SSL certificate.
 
@@ -71,19 +72,14 @@ git push -u origin main
 
 ## Step 5: Log in to the Production System
 
-Once deployed, visit `https://os.theluxestudio.in`:
+Once deployed, visit `https://client.theluxestudio.in`:
 
-- **Split-Screen Authentication**: Unauthenticated visitors are automatically routed to the luxury login portal.
-- **Studio Owner Master Access**:
-  - Email: `admin@theluxestudio.in`
-  - Password: `Password123!`
-- **Nitin (Assigned PM)**:
-  - Email: `nitin@theluxestudio.in`
-  - Password: `Password123!`
-  *(Projects are isolated to Nitin; private accounts remain hidden).*
-- **Kalajay Client Portal**:
-  - Email: `owner@kalajay.com`
-  - Password: `Password123!`
+- **Studio Leadership Access**:
+  - **Rahul Kushwaha (Super Admin)**: Handle `rahul` or `rahul.kushwaha@theluxestudio.in`
+  - **Nitin Chandnani (Luxe PM)**: Handle `nitin` or `nitin.chandnani@theluxestudio.in`
+- **Client Access**:
+  - Each client is onboarded via the Studio Admin Workspace with their dedicated handle (e.g. `luxe_<brand>`).
+  - Isolated multi-tenant security ensures clients can only see their own project.
 
 ---
 

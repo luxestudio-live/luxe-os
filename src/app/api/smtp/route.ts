@@ -115,7 +115,7 @@ export async function POST(request: Request) {
             <p>This is a certified automated test transmission dispatched from the LuxeOS platform.</p>
             <p><strong>Status:</strong> Active &amp; Ready for Transactional Notifications</p>
             <hr style="border: none; border-top: 1px solid #E6D0A5;" />
-            <small style="color: #8E8E93;">LuxeStudio Operations Engine &middot; os.theluxestudio.in</small>
+            <small style="color: #8E8E93;">LuxeStudio Operations Engine &middot; client.theluxestudio.in</small>
           </div>
         `,
         eventType: 'TEST_TRANSMISSION',

@@ -3,8 +3,7 @@
 ## Product Overview
 - **Name**: LuxeOS
 - **Brand / Organization**: LuxeStudio (`https://theluxestudio.in`)
-- **Target URL**: `https://os.theluxestudio.in`
-- **Initial Pilot Client**: Kalajay (`https://kalajay.theluxestudio.in/`)
+- **Target URL**: `https://client.theluxestudio.in`
 - **Category**: Exclusive multi-client project experience and operations platform.
 - **Positioning**: A bespoke digital ecosystem combining an ultra-refined, transparent Client Portal with a commanding, structured Admin Workspace for LuxeStudio. Unlike generic SaaS task trackers, LuxeOS serves as the single source of truth for the entire client lifecycle—from onboarding and prototype approvals to UAT, 14-day hypercare, and ongoing maintenance.
 

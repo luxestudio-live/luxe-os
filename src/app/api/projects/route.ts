@@ -256,7 +256,7 @@ export async function POST(request: Request) {
         email: finalClientEmail,
         temporaryPassword,
         name: clientUser.name,
-        portalUrl: `${process.env.APP_URL || 'https://os.theluxestudio.in'}/login`,
+        portalUrl: `${process.env.APP_URL || 'https://client.theluxestudio.in'}/login`,
         mustChangePassword: true,
       },
     });

@@ -1,7 +1,7 @@
 -- ====================================================================
 -- LuxeOS Production Database Schema & Initial Seed for Supabase (PostgreSQL)
 -- Company: LuxeStudio (https://theluxestudio.in)
--- Platform: LuxeOS (https://os.theluxestudio.in)
+-- Platform: LuxeOS (https://client.theluxestudio.in)
 -- ====================================================================
 
 -- 1. Enable UUID Extension
