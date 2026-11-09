@@ -23,6 +23,7 @@ import {
   Lock,
   UserCheck,
   ExternalLink,
+  Trash2,
 } from 'lucide-react';
 
 interface AdminWorkspaceProps {
@@ -43,12 +44,31 @@ export function AdminWorkspace({
   availableUsers = [],
 }: AdminWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'matrix' | 'milestones' | 'smtp' | 'updates'>('overview');
+  
+  // Milestone Edit State
   const [editingMilestone, setEditingMilestone] = useState<MilestoneData | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editPhase, setEditPhase] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editTargetDate, setEditTargetDate] = useState('');
+  const [editStartDate, setEditStartDate] = useState('');
   const [newStatus, setNewStatus] = useState('');
   const [newProgress, setNewProgress] = useState(0);
   const [newBlockers, setNewBlockers] = useState('');
   const [newClientActionRequired, setNewClientActionRequired] = useState(false);
   const [savingMilestone, setSavingMilestone] = useState(false);
+  const [deletingMilestone, setDeletingMilestone] = useState(false);
+
+  // Create Milestone Modal State
+  const [createMilestoneModalOpen, setCreateMilestoneModalOpen] = useState(false);
+  const [createTitle, setCreateTitle] = useState('');
+  const [createPhase, setCreatePhase] = useState('Development');
+  const [createDescription, setCreateDescription] = useState('');
+  const [createTargetDate, setCreateTargetDate] = useState('');
+  const [createStartDate, setCreateStartDate] = useState('');
+  const [createStatus, setCreateStatus] = useState('SCHEDULED');
+  const [createProgress, setCreateProgress] = useState(0);
+  const [creatingMilestone, setCreatingMilestone] = useState(false);
 
   // Onboard New Client Modal
   const [onboardModalOpen, setOnboardModalOpen] = useState(false);
@@ -99,6 +119,11 @@ export function AdminWorkspace({
 
   const handleOpenMilestoneEdit = (m: MilestoneData) => {
     setEditingMilestone(m);
+    setEditTitle(m.title);
+    setEditPhase(m.phase);
+    setEditDescription(m.description || '');
+    setEditTargetDate(m.targetDate ? new Date(m.targetDate).toISOString().split('T')[0] : '');
+    setEditStartDate(m.startDate ? new Date(m.startDate).toISOString().split('T')[0] : '');
     setNewStatus(m.status);
     setNewProgress(m.progress);
     setNewBlockers(m.blockers || '');
@@ -107,11 +132,16 @@ export function AdminWorkspace({
 
   const handleSaveMilestone = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingMilestone) return;
+    if (!editingMilestone || !editTitle.trim()) return;
 
     setSavingMilestone(true);
     try {
       await onUpdateMilestone(editingMilestone.id, {
+        title: editTitle.trim(),
+        phase: editPhase.trim() || editingMilestone.phase,
+        description: editDescription.trim(),
+        targetDate: editTargetDate ? new Date(editTargetDate).toISOString() : null,
+        startDate: editStartDate ? new Date(editStartDate).toISOString() : null,
         status: newStatus,
         progress: Number(newProgress),
         blockers: newBlockers || null,
@@ -119,10 +149,74 @@ export function AdminWorkspace({
       });
       setEditingMilestone(null);
       await onReload();
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      alert(err.message || 'Error updating milestone');
     } finally {
       setSavingMilestone(false);
+    }
+  };
+
+  const handleDeleteMilestone = async () => {
+    if (!editingMilestone) return;
+    if (
+      !confirm(
+        `Are you sure you want to delete Milestone #${editingMilestone.sequence}: "${editingMilestone.title}"?\nThis cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    setDeletingMilestone(true);
+    try {
+      const res = await fetch(`/api/milestones/${editingMilestone.id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete milestone');
+      setEditingMilestone(null);
+      await onReload();
+    } catch (err: any) {
+      alert(err.message || 'Error deleting milestone');
+    } finally {
+      setDeletingMilestone(false);
+    }
+  };
+
+  const handleCreateMilestone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createTitle.trim()) return;
+
+    setCreatingMilestone(true);
+    try {
+      const res = await fetch('/api/milestones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: project.id,
+          title: createTitle.trim(),
+          phase: createPhase.trim() || 'Execution',
+          description: createDescription.trim(),
+          targetDate: createTargetDate ? new Date(createTargetDate).toISOString() : null,
+          startDate: createStartDate ? new Date(createStartDate).toISOString() : null,
+          status: createStatus,
+          progress: Number(createProgress) || 0,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create milestone');
+
+      setCreateTitle('');
+      setCreatePhase('Development');
+      setCreateDescription('');
+      setCreateTargetDate('');
+      setCreateStartDate('');
+      setCreateStatus('SCHEDULED');
+      setCreateProgress(0);
+      setCreateMilestoneModalOpen(false);
+      await onReload();
+    } catch (err: any) {
+      alert(err.message || 'Error creating milestone');
+    } finally {
+      setCreatingMilestone(false);
     }
   };
 
@@ -378,13 +472,22 @@ export function AdminWorkspace({
 
           {/* Project Management Table */}
           <div className="rounded-2xl border border-white/10 bg-[#171719] p-5 shadow-xl space-y-3">
-            <div className="flex items-center justify-between border-b border-white/10 pb-2">
-              <h3 className="text-sm font-semibold text-white">
-                Delivery Gates &amp; Status Controls
-              </h3>
-              <span className="text-xs text-zinc-400">
-                Changes propagate to client portal immediately
-              </span>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-white/10 pb-3">
+              <div>
+                <h3 className="text-sm font-semibold text-white">
+                  Delivery Gates &amp; Status Controls
+                </h3>
+                <span className="text-xs text-zinc-400">
+                  Customizable stages, timelines &amp; client milestones ({project.milestones.length} gates active)
+                </span>
+              </div>
+              <button
+                onClick={() => setCreateMilestoneModalOpen(true)}
+                className="flex items-center gap-1.5 rounded-lg bg-[#C9A56A] px-3.5 py-1.5 text-xs font-semibold text-black hover:bg-[#B89355] transition shadow"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>+ Add Milestone</span>
+              </button>
             </div>
 
             <div className="overflow-x-auto">
@@ -394,7 +497,7 @@ export function AdminWorkspace({
                     <th className="py-2 px-3">Gate</th>
                     <th className="py-2 px-3">Milestone Title</th>
                     <th className="py-2 px-3">Phase</th>
-                    <th className="py-2 px-3">Target</th>
+                    <th className="py-2 px-3">Target Date</th>
                     <th className="py-2 px-3">Progress</th>
                     <th className="py-2 px-3">Status</th>
                     <th className="py-2 px-3 text-right">Action</th>
@@ -406,10 +509,10 @@ export function AdminWorkspace({
                       <td className="py-2.5 px-3 font-mono text-[#C9A56A]">#{m.sequence}</td>
                       <td className="py-2.5 px-3 font-medium text-white">{m.title}</td>
                       <td className="py-2.5 px-3 text-zinc-400">{m.phase}</td>
-                      <td className="py-2.5 px-3 font-mono text-zinc-400">
+                      <td className="py-2.5 px-3 font-mono text-zinc-300">
                         {m.targetDate
-                          ? new Date(m.targetDate).toLocaleDateString('en-GB')
-                          : 'TBD'}
+                          ? new Date(m.targetDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                          : <span className="text-zinc-500 italic">TBD</span>}
                       </td>
                       <td className="py-2.5 px-3 font-mono">{m.progress}%</td>
                       <td className="py-2.5 px-3">
@@ -430,7 +533,7 @@ export function AdminWorkspace({
                           onClick={() => handleOpenMilestoneEdit(m)}
                           className="rounded-lg border border-white/10 bg-[#0B0B0D] px-2.5 py-1 text-[11px] font-medium text-zinc-300 hover:text-white hover:border-[#C9A56A]/50 transition"
                         >
-                          Edit
+                          Edit &amp; Timeline
                         </button>
                       </td>
                     </tr>
@@ -444,29 +547,49 @@ export function AdminWorkspace({
 
       {/* Milestones Tab */}
       {activeTab === 'milestones' && (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {project.milestones.map((m) => (
-            <div
-              key={m.id}
-              className="rounded-2xl border border-white/10 bg-[#171719] p-4 shadow space-y-2 text-xs"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[#C9A56A]">Gate #{m.sequence}</span>
-                <button
-                  onClick={() => handleOpenMilestoneEdit(m)}
-                  className="rounded-lg bg-[#C9A56A]/10 border border-[#C9A56A]/30 px-2.5 py-1 text-xs text-[#C9A56A] font-semibold hover:bg-[#C9A56A]/20"
-                >
-                  Edit Stage
-                </button>
-              </div>
-              <h4 className="text-sm font-semibold text-white">{m.title}</h4>
-              <p className="text-zinc-400 text-xs">{m.description}</p>
-              <div className="flex justify-between font-mono pt-2 border-t border-white/5 text-[11px] text-zinc-500">
-                <span>Progress: {m.progress}%</span>
-                <span>Status: {m.status}</span>
-              </div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <div>
+              <h3 className="text-base font-serif font-semibold text-white">Project Milestone Gates</h3>
+              <p className="text-xs text-zinc-400">Configure progression, stage titles, and deliverable targets.</p>
             </div>
-          ))}
+            <button
+              onClick={() => setCreateMilestoneModalOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg bg-[#C9A56A] px-3.5 py-1.5 text-xs font-semibold text-black hover:bg-[#B89355] transition shadow"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>+ Add Milestone</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {project.milestones.map((m) => (
+              <div
+                key={m.id}
+                className="rounded-2xl border border-white/10 bg-[#171719] p-4 shadow space-y-2 text-xs"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[#C9A56A]">Gate #{m.sequence}</span>
+                    <span className="text-zinc-500">&middot;</span>
+                    <span className="text-zinc-400 font-mono">{m.phase}</span>
+                  </div>
+                  <button
+                    onClick={() => handleOpenMilestoneEdit(m)}
+                    className="rounded-lg bg-[#C9A56A]/10 border border-[#C9A56A]/30 px-2.5 py-1 text-xs text-[#C9A56A] font-semibold hover:bg-[#C9A56A]/20"
+                  >
+                    Edit Stage
+                  </button>
+                </div>
+                <h4 className="text-sm font-semibold text-white">{m.title}</h4>
+                <p className="text-zinc-400 text-xs">{m.description}</p>
+                <div className="flex justify-between font-mono pt-2 border-t border-white/5 text-[11px] text-zinc-400">
+                  <span>Target: {m.targetDate ? new Date(m.targetDate).toLocaleDateString('en-GB') : 'TBD'}</span>
+                  <span>Progress: {m.progress}% ({m.status})</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -699,15 +822,15 @@ export function AdminWorkspace({
 
       {/* Milestone Edit Modal */}
       {editingMilestone && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#171719] p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#171719] p-6 shadow-2xl space-y-4 my-8">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div>
                 <span className="text-[10px] font-mono uppercase text-[#C9A56A]">
-                  Gate Control
+                  Edit Milestone &middot; Gate #{editingMilestone.sequence}
                 </span>
                 <h3 className="text-base font-semibold text-white mt-0.5">
-                  Milestone #{editingMilestone.sequence}: {editingMilestone.title}
+                  Update Stage Name, Phase &amp; Timeline
                 </h3>
               </div>
               <button
@@ -719,6 +842,72 @@ export function AdminWorkspace({
             </div>
 
             <form onSubmit={handleSaveMilestone} className="space-y-4 text-xs">
+              {/* Milestone Title */}
+              <div>
+                <label className="block text-zinc-300 font-medium mb-1">
+                  Milestone Name / Title <span className="text-[#C9A56A]">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="e.g. Discovery & Design System Sign-off"
+                  className="w-full rounded-lg border border-white/10 bg-[#0B0B0D] px-3.5 py-2 text-white placeholder-zinc-600 focus:border-[#C9A56A] focus:outline-none text-xs"
+                />
+              </div>
+
+              {/* Phase & Timeline Dates */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-zinc-400 font-medium mb-1">Phase</label>
+                  <input
+                    type="text"
+                    value={editPhase}
+                    onChange={(e) => setEditPhase(e.target.value)}
+                    placeholder="e.g. Discovery"
+                    className="w-full rounded-lg border border-white/10 bg-[#0B0B0D] px-3 py-2 text-white focus:border-[#C9A56A] focus:outline-none text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-zinc-400 font-medium mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={editStartDate}
+                    onChange={(e) => setEditStartDate(e.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-[#0B0B0D] px-3 py-2 text-white focus:border-[#C9A56A] focus:outline-none text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-zinc-300 font-medium mb-1">
+                    Target Due Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editTargetDate}
+                    onChange={(e) => setEditTargetDate(e.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-[#0B0B0D] px-3 py-2 text-white focus:border-[#C9A56A] focus:outline-none text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Scope & Description */}
+              <div>
+                <label className="block text-zinc-400 font-medium mb-1">
+                  Scope &amp; Deliverables Description
+                </label>
+                <textarea
+                  rows={2}
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  placeholder="Summary of deliverables, client feedback cycles, and sign-off criteria..."
+                  className="w-full rounded-lg border border-white/10 bg-[#0B0B0D] px-3 py-2 text-white placeholder-zinc-600 focus:border-[#C9A56A] focus:outline-none text-xs resize-none"
+                />
+              </div>
+
+              {/* Status & Progress Slider */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-zinc-400 font-medium mb-1">Status</label>
@@ -740,7 +929,7 @@ export function AdminWorkspace({
 
                 <div>
                   <label className="block text-zinc-400 font-medium mb-1">
-                    Progress Percentage ({newProgress}%)
+                    Progress ({newProgress}%)
                   </label>
                   <input
                     type="range"
@@ -753,6 +942,7 @@ export function AdminWorkspace({
                 </div>
               </div>
 
+              {/* Active Blocker Note */}
               <div>
                 <label className="block text-zinc-400 font-medium mb-1">
                   Active Blocker Note (Optional)
@@ -761,11 +951,12 @@ export function AdminWorkspace({
                   type="text"
                   value={newBlockers}
                   onChange={(e) => setNewBlockers(e.target.value)}
-                  placeholder="e.g. Awaiting ERP credentials..."
+                  placeholder="e.g. Awaiting client DNS or ERP access..."
                   className="w-full rounded-lg border border-white/10 bg-[#0B0B0D] px-3 py-2 text-white placeholder-zinc-600 focus:border-[#C9A56A] focus:outline-none"
                 />
               </div>
 
+              {/* Action Required Checkbox */}
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -779,20 +970,170 @@ export function AdminWorkspace({
                 </label>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+              {/* Footer Actions */}
+              <div className="flex items-center justify-between gap-2 pt-3 border-t border-white/10">
                 <button
                   type="button"
-                  onClick={() => setEditingMilestone(null)}
+                  onClick={handleDeleteMilestone}
+                  disabled={deletingMilestone}
+                  className="flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-rose-400 hover:bg-rose-500/20 transition disabled:opacity-50 text-xs font-medium"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>{deletingMilestone ? 'Deleting...' : 'Delete Gate'}</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingMilestone(null)}
+                    className="rounded-lg border border-white/10 bg-[#0B0B0D] px-4 py-2 text-zinc-400 hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingMilestone}
+                    className="rounded-lg bg-[#C9A56A] px-4 py-2 font-semibold text-black hover:bg-[#B89355] transition disabled:opacity-50"
+                  >
+                    {savingMilestone ? 'Saving...' : 'Save & Propagate'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create New Milestone Modal */}
+      {createMilestoneModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#171719] p-6 shadow-2xl space-y-4 my-8">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div>
+                <span className="text-[10px] font-mono uppercase text-[#C9A56A]">
+                  New Gate #{project.milestones.length + 1}
+                </span>
+                <h3 className="text-base font-semibold text-white mt-0.5">
+                  Create Custom Milestone
+                </h3>
+              </div>
+              <button
+                onClick={() => setCreateMilestoneModalOpen(false)}
+                className="text-zinc-400 hover:text-white text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateMilestone} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-zinc-300 font-medium mb-1">
+                  Milestone Name / Stage Title <span className="text-[#C9A56A]">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={createTitle}
+                  onChange={(e) => setCreateTitle(e.target.value)}
+                  placeholder="e.g. ERP & Payment Gateway Integration"
+                  className="w-full rounded-lg border border-white/10 bg-[#0B0B0D] px-3.5 py-2 text-white placeholder-zinc-600 focus:border-[#C9A56A] focus:outline-none text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-zinc-400 font-medium mb-1">Phase</label>
+                  <input
+                    type="text"
+                    value={createPhase}
+                    onChange={(e) => setCreatePhase(e.target.value)}
+                    placeholder="e.g. Development"
+                    className="w-full rounded-lg border border-white/10 bg-[#0B0B0D] px-3 py-2 text-white focus:border-[#C9A56A] focus:outline-none text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-zinc-400 font-medium mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={createStartDate}
+                    onChange={(e) => setCreateStartDate(e.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-[#0B0B0D] px-3 py-2 text-white focus:border-[#C9A56A] focus:outline-none text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-zinc-300 font-medium mb-1">Target Due Date</label>
+                  <input
+                    type="date"
+                    value={createTargetDate}
+                    onChange={(e) => setCreateTargetDate(e.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-[#0B0B0D] px-3 py-2 text-white focus:border-[#C9A56A] focus:outline-none text-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 font-medium mb-1">
+                  Scope &amp; Deliverables Description
+                </label>
+                <textarea
+                  rows={2}
+                  value={createDescription}
+                  onChange={(e) => setCreateDescription(e.target.value)}
+                  placeholder="Detailed description of what will be produced, reviewed, and signed off in this stage..."
+                  className="w-full rounded-lg border border-white/10 bg-[#0B0B0D] px-3 py-2 text-white placeholder-zinc-600 focus:border-[#C9A56A] focus:outline-none text-xs resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-zinc-400 font-medium mb-1">Initial Status</label>
+                  <select
+                    value={createStatus}
+                    onChange={(e) => setCreateStatus(e.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-[#0B0B0D] px-3 py-2 text-white focus:border-[#C9A56A] focus:outline-none"
+                  >
+                    <option value="NOT_STARTED">Not Started</option>
+                    <option value="SCHEDULED">Scheduled</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="AWAITING_CLIENT">Awaiting Client</option>
+                    <option value="UNDER_REVIEW">Under Review</option>
+                    <option value="BLOCKED">Blocked</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="DELAYED">Delayed</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-zinc-400 font-medium mb-1">
+                    Initial Progress ({createProgress}%)
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={createProgress}
+                    onChange={(e) => setCreateProgress(Number(e.target.value))}
+                    className="w-full mt-2 accent-[#C9A56A]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setCreateMilestoneModalOpen(false)}
                   className="rounded-lg border border-white/10 bg-[#0B0B0D] px-4 py-2 text-zinc-400 hover:text-white"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={savingMilestone}
-                  className="rounded-lg bg-[#C9A56A] px-4 py-2 font-semibold text-black hover:bg-[#B89355] transition disabled:opacity-50"
+                  disabled={creatingMilestone}
+                  className="rounded-lg bg-[#C9A56A] px-5 py-2 font-semibold text-black hover:bg-[#B89355] transition disabled:opacity-50"
                 >
-                  {savingMilestone ? 'Saving...' : 'Save & Propagate'}
+                  {creatingMilestone ? 'Creating Gate...' : '+ Create Milestone'}
                 </button>
               </div>
             </form>

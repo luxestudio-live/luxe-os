@@ -83,7 +83,7 @@ export function ProjectTimeline({
               Architecture &amp; Delivery Roadmap
             </span>
             <span className="rounded-full bg-[#C9A56A]/10 px-2 py-0.5 text-[10px] text-[#C9A56A] border border-[#C9A56A]/20">
-              9 Milestones
+              {milestones.length} Milestones
             </span>
           </div>
           <h2 className="text-2xl font-serif font-semibold text-white tracking-tight mt-1">
