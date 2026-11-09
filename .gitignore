@@ -46,3 +46,9 @@ next-env.d.ts
 *.db-journal
 prisma/*.db
 prisma/*.db-journal
+
+# amplify & deployment artifacts
+.amplify-hosting/
+artifacts.zip
+*.zip
+

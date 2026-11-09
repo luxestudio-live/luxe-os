@@ -4,6 +4,7 @@ frontend:
     preBuild:
       commands:
         - npm ci
+        - env | grep -E '^(DATABASE_URL|NEXTAUTH_SECRET|SMTP_ENCRYPTION_KEY|APP_URL|NEXT_PUBLIC_)' > .env.production
         - npx prisma generate
     build:
       commands:
