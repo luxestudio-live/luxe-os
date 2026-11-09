@@ -16,16 +16,43 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No rows provided to import' }, { status: 400 });
     }
 
+    if (rows.length > 500) {
+      return NextResponse.json({ error: 'Batch upload exceeds maximum limit of 500 rows' }, { status: 400 });
+    }
+
     const cookieStore = await cookies();
     const activeUserId = cookieStore.get('luxe_user_id')?.value;
-    const user = activeUserId
-      ? await prisma.user.findUnique({ where: { id: activeUserId } })
-      : null;
+    if (!activeUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: activeUserId },
+      include: { memberships: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     // Check project exists
     const project = await prisma.project.findUnique({ where: { id: projectId } });
     if (!project) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    // Authorization: internal studio staff or client belonging to project's org
+    const isStudioStaff =
+      user.role === 'SUPER_ADMIN' ||
+      user.role === 'LUXE_PM' ||
+      user.role === 'INTERNAL_TEAM';
+
+    const belongsToOrg = user.memberships.some(
+      (m) => m.organizationId === project.organizationId
+    );
+
+    if (!isStudioStaff && !belongsToOrg) {
+      return NextResponse.json({ error: 'Forbidden: You do not have permission for this project' }, { status: 403 });
     }
 
     // Determine target milestone

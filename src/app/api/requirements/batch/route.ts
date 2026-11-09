@@ -12,11 +12,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No rows provided' }, { status: 400 });
     }
 
+    if (rows.length > 500) {
+      return NextResponse.json({ error: 'Batch update exceeds maximum of 500 rows' }, { status: 400 });
+    }
+
     const cookieStore = await cookies();
     const activeUserId = cookieStore.get('luxe_user_id')?.value;
-    const user = activeUserId
-      ? await prisma.user.findUnique({ where: { id: activeUserId } })
-      : null;
+    if (!activeUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: activeUserId },
+      include: { memberships: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const isInternal =
       user?.role === 'SUPER_ADMIN' ||

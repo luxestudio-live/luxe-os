@@ -9,12 +9,38 @@ export async function POST(request: Request) {
 
     const cookieStore = await cookies();
     const activeUserId = cookieStore.get('luxe_user_id')?.value;
-    const user = activeUserId
-      ? await prisma.user.findUnique({ where: { id: activeUserId } })
-      : null;
+    if (!activeUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: activeUserId },
+      include: { memberships: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     if (!projectId || !title || !description) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Verify project authorization
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    const isStudioStaff =
+      user.role === 'SUPER_ADMIN' ||
+      user.role === 'LUXE_PM' ||
+      user.role === 'INTERNAL_TEAM';
+
+    const belongsToOrg = user.memberships.some((m) => m.organizationId === project.organizationId);
+
+    if (!isStudioStaff && !belongsToOrg) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const issue = await prisma.uatIssue.create({
@@ -44,12 +70,43 @@ export async function PATCH(request: Request) {
 
     const cookieStore = await cookies();
     const activeUserId = cookieStore.get('luxe_user_id')?.value;
-    const user = activeUserId
-      ? await prisma.user.findUnique({ where: { id: activeUserId } })
-      : null;
+    if (!activeUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: activeUserId },
+      include: { memberships: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     if (!id) {
       return NextResponse.json({ error: 'Missing issue ID' }, { status: 400 });
+    }
+
+    const issue = await prisma.uatIssue.findUnique({
+      where: { id },
+      include: { project: true },
+    });
+
+    if (!issue) {
+      return NextResponse.json({ error: 'Issue not found' }, { status: 404 });
+    }
+
+    const isStudioStaff =
+      user.role === 'SUPER_ADMIN' ||
+      user.role === 'LUXE_PM' ||
+      user.role === 'INTERNAL_TEAM';
+
+    const belongsToOrg = user.memberships.some(
+      (m) => m.organizationId === issue.project.organizationId
+    );
+
+    if (!isStudioStaff && !belongsToOrg) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const dataToUpdate: any = {};

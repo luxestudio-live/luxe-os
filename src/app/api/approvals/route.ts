@@ -4,6 +4,12 @@ import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
   try {
+    const cookieStore = await cookies();
+    const activeUserId = cookieStore.get('luxe_user_id')?.value;
+    if (!activeUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('projectId');
 
@@ -21,6 +27,12 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const cookieStore = await cookies();
+    const activeUserId = cookieStore.get('luxe_user_id')?.value;
+    if (!activeUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { projectId, milestoneId, subject, description, deliverableVersion, requestedFrom } = body;
 
@@ -45,14 +57,19 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const body = await request.json();
-    const { id, status, decisionNotes } = body;
-
     const cookieStore = await cookies();
     const activeUserId = cookieStore.get('luxe_user_id')?.value;
-    const user = activeUserId
-      ? await prisma.user.findUnique({ where: { id: activeUserId } })
-      : null;
+    if (!activeUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: activeUserId } });
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { id, status, decisionNotes } = body;
 
     if (!id || !status) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -64,7 +81,7 @@ export async function PATCH(request: Request) {
         status, // APPROVED or CHANGES_REQUESTED
         decisionNotes,
         decidedAt: new Date(),
-        decidedBy: user?.name || 'Rohan Jaikishan (Client Owner)',
+        decidedBy: user.name || 'Client Stakeholder',
       },
     });
 

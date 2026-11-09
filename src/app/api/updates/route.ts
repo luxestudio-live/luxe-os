@@ -9,9 +9,26 @@ export async function POST(request: Request) {
 
     const cookieStore = await cookies();
     const activeUserId = cookieStore.get('luxe_user_id')?.value;
-    const user = activeUserId
-      ? await prisma.user.findUnique({ where: { id: activeUserId } })
-      : null;
+    if (!activeUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: activeUserId } });
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const isStudioStaff =
+      user.role === 'SUPER_ADMIN' ||
+      user.role === 'LUXE_PM' ||
+      user.role === 'INTERNAL_TEAM';
+
+    if (!isStudioStaff) {
+      return NextResponse.json(
+        { error: 'Forbidden: Only studio staff can publish updates' },
+        { status: 403 }
+      );
+    }
 
     if (!projectId || !title || !content) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
