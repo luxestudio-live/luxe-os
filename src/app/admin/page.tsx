@@ -46,19 +46,22 @@ export default function AdminPage() {
       setProjects(userProjects);
 
       // 3. Determine Project to Load
-      let projId = targetProjectId || activeProjectId;
-      const isValidProject = userProjects.some((p: any) => p.id === projId);
-      if (!isValidProject && userProjects.length > 0) {
-        projId = userProjects[0].id;
-      } else if (!isValidProject) {
-        projId = 'default';
-      }
-      setActiveProjectId(projId);
+      if (userProjects.length > 0) {
+        let projId = targetProjectId || activeProjectId;
+        const isValidProject = userProjects.some((p: any) => p.id === projId);
+        if (!isValidProject) {
+          projId = userProjects[0].id;
+        }
+        setActiveProjectId(projId);
 
-      const projectRes = await fetch(`/api/projects/${projId}`);
-      const projectData = await projectRes.json();
-      if (!projectData.error) {
-        setProject(projectData);
+        const projectRes = await fetch(`/api/projects/${projId}`);
+        const projectData = await projectRes.json();
+        if (!projectData.error) {
+          setProject(projectData);
+        }
+      } else {
+        setProject(null);
+        setActiveProjectId('');
       }
     } catch (err) {
       console.error('Error loading admin data:', err);
@@ -121,7 +124,7 @@ export default function AdminPage() {
     await fetchData();
   };
 
-  if (loading || !project || !currentUser) {
+  if (loading || !currentUser) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#0B0B0D] text-white">
         <div className="flex items-center gap-3">
@@ -138,7 +141,7 @@ export default function AdminPage() {
     );
   }
 
-  const pendingCount = project.requirements.filter((r) => r.status === 'PENDING').length;
+  const pendingCount = project ? project.requirements.filter((r) => r.status === 'PENDING').length : 0;
 
   return (
     <div className="min-h-screen bg-[#0B0B0D] text-[#F7F5F1] selection:bg-[#C9A56A]/30 selection:text-white">
@@ -153,7 +156,7 @@ export default function AdminPage() {
         }}
         pendingActionsCount={pendingCount}
         availableProjects={projects}
-        activeProjectId={project.id}
+        activeProjectId={project?.id || ''}
         onSelectProject={handleSelectProject}
       />
 
@@ -183,7 +186,7 @@ export default function AdminPage() {
               }`}
             >
               <Sliders className="h-3.5 w-3.5" />
-              <span>Milestone Gates &amp; SMTP ({project.name})</span>
+              <span>Milestone Gates &amp; SMTP ({project?.name || 'No Project Selected'})</span>
             </button>
           </div>
         </div>
@@ -199,7 +202,7 @@ export default function AdminPage() {
             }}
             onReload={fetchData}
           />
-        ) : (
+        ) : project ? (
           <AdminWorkspace
             project={project}
             currentUser={currentUser}
@@ -208,6 +211,19 @@ export default function AdminPage() {
             onReload={fetchData}
             availableUsers={availableUsers}
           />
+        ) : (
+          <div className="rounded-2xl border border-white/[0.08] bg-[#121214] p-12 text-center">
+            <h3 className="font-serif text-lg font-semibold text-white">No Project Selected</h3>
+            <p className="mt-2 text-sm text-zinc-400">
+              Select an active project from the Project Matrix or onboard a new client to manage its milestones and workspace.
+            </p>
+            <button
+              onClick={() => setAdminView('portfolio')}
+              className="mt-4 rounded-xl bg-[#C9A56A] px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-black transition hover:bg-[#D4B57E]"
+            >
+              Open Project Matrix
+            </button>
+          </div>
         )}
       </main>
 
@@ -220,7 +236,7 @@ export default function AdminPage() {
             <span>Internal Studio Management</span>
           </div>
           <p className="text-[11px] text-zinc-600">
-            LuxeStudio Operations &middot; <a href="https://theluxestudio.in" target="_blank" rel="noopener noreferrer" className="text-[#C9A56A] hover:underline">theluxestudio.in</a> &middot; Active Project: {project.name}
+            LuxeStudio Operations &middot; <a href="https://theluxestudio.in" target="_blank" rel="noopener noreferrer" className="text-[#C9A56A] hover:underline">theluxestudio.in</a> &middot; Active Project: {project?.name || 'None Selected'}
           </p>
         </div>
       </footer>

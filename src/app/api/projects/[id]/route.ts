@@ -28,17 +28,40 @@ export async function GET(
 
     if (id === 'default') {
       if (user.role === 'SUPER_ADMIN') {
-        // Default to Kalajay or first project
+        // Default to Kalajay or first available project
         project = await prisma.project.findFirst({
-          where: { slug: 'kalajay-ecommerce' },
+          where: {
+            OR: [
+              { slug: 'kalajay-ecommerce' },
+              { name: { contains: 'Kalajay', mode: 'insensitive' } },
+            ],
+          },
           include: getProjectIncludes(isInternal),
         });
+        if (!project) {
+          project = await prisma.project.findFirst({
+            orderBy: { createdAt: 'desc' },
+            include: getProjectIncludes(isInternal),
+          });
+        }
       } else if (user.role === 'LUXE_PM' || user.role === 'INTERNAL_TEAM') {
-        // Nitin only gets the first project assigned to him
+        // Nitin gets project assigned to him or created by him
         project = await prisma.project.findFirst({
-          where: { assignedPmId: user.id },
+          where: {
+            OR: [
+              { assignedPmId: user.id },
+              { createdById: user.id },
+            ],
+          },
+          orderBy: { createdAt: 'desc' },
           include: getProjectIncludes(isInternal),
         });
+        if (!project) {
+          project = await prisma.project.findFirst({
+            orderBy: { createdAt: 'desc' },
+            include: getProjectIncludes(isInternal),
+          });
+        }
       } else {
         // Client gets ONLY their own organization project
         const userWithMemberships = await prisma.user.findUnique({
@@ -56,6 +79,7 @@ export async function GET(
 
         project = await prisma.project.findFirst({
           where: { organizationId: { in: orgIds } },
+          orderBy: { createdAt: 'desc' },
           include: getProjectIncludes(isInternal),
         });
       }
