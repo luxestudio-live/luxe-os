@@ -24,6 +24,13 @@ interface HeaderProps {
     name: string;
     slug: string;
     assignedPmName?: string | null;
+    organization?: {
+      id?: string;
+      name: string;
+      slug?: string;
+      brandColor?: string;
+      logoUrl?: string | null;
+    };
   }>;
   activeProjectId?: string;
   onSelectProject?: (projectId: string) => void;
@@ -87,8 +94,22 @@ export function Header({
                   onClick={() => setProjectMenuOpen(!projectMenuOpen)}
                   className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#171719] px-2.5 py-1 text-xs text-white hover:border-[#C9A56A]/50 transition"
                 >
-                  <span className="font-medium truncate max-w-[140px] sm:max-w-[200px]">
-                    {currentProject?.name || (availableProjects.length === 0 ? 'No Projects Yet' : 'Select Project')}
+                  <span className="font-medium truncate max-w-[160px] sm:max-w-[240px]">
+                    {currentProject ? (
+                      currentProject.organization?.name ? (
+                        <>
+                          <span className="text-[#C9A56A] font-semibold">{currentProject.organization.name}</span>
+                          <span className="text-zinc-500 mx-1">&middot;</span>
+                          <span>{currentProject.name}</span>
+                        </>
+                      ) : (
+                        currentProject.name
+                      )
+                    ) : availableProjects.length === 0 ? (
+                      'No Projects Yet'
+                    ) : (
+                      'Select Project'
+                    )}
                   </span>
                   {availableProjects.length > 1 && (
                     <span className="rounded bg-[#C9A56A]/20 px-1 py-0.2 text-[9px] font-mono text-[#C9A56A]">
@@ -101,7 +122,7 @@ export function Header({
                 {projectMenuOpen && (
                   <div className="absolute left-0 mt-2 w-80 rounded-xl border border-white/10 bg-[#171719] p-2 shadow-2xl z-50 text-xs">
                     <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-zinc-500 font-mono flex justify-between">
-                      <span>Projects</span>
+                      <span>Client &amp; Project</span>
                       <span>{isSuperAdmin ? 'Full Access' : 'Assigned Only'}</span>
                     </div>
                     <div className="mt-1 space-y-0.5">
@@ -124,6 +145,11 @@ export function Header({
                             }`}
                           >
                             <div className="truncate pr-2">
+                              {p.organization?.name && (
+                                <div className="text-[10px] font-mono uppercase tracking-wider text-[#C9A56A] truncate">
+                                  {p.organization.name}
+                                </div>
+                              )}
                               <div className="font-medium text-white truncate">{p.name}</div>
                             </div>
                             {p.id === currentProject?.id && <Check className="h-3.5 w-3.5 shrink-0 text-[#C9A56A]" />}
@@ -138,8 +164,14 @@ export function Header({
 
             {/* Client View Title */}
             {!isStudioStaff && (
-              <span className="text-xs text-zinc-400 font-mono">
-                {currentProject?.name || 'Client Workspace'}
+              <span className="text-xs text-zinc-300 font-mono">
+                {currentProject ? (
+                  currentProject.organization?.name
+                    ? `${currentProject.organization.name} · ${currentProject.name}`
+                    : currentProject.name
+                ) : (
+                  'Client Workspace'
+                )}
               </span>
             )}
           </div>

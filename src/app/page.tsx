@@ -398,7 +398,7 @@ export default function Home() {
               <PrototypePreviewStudio
                 prototypeUrl={project.prototypeUrl || 'https://staging.theluxestudio.in/'}
                 projectId={project.id}
-                projectName={project.name}
+                projectName={project.organization?.name ? `${project.organization.name} — ${project.name}` : project.name}
                 feedbacks={project.feedbacks}
                 onFeedbackSubmit={handleFeedbackSubmit}
                 onFeedbackResolve={handleFeedbackResolve}
@@ -413,7 +413,7 @@ export default function Home() {
                 onRequirementReview={handleRequirementReview}
                 isInternalUser={isInternal}
                 projectId={project.id}
-                projectName={project.name}
+                projectName={project.organization?.name ? `${project.organization.name} — ${project.name}` : project.name}
                 currentUser={currentUser}
                 onReload={fetchData}
               />
@@ -470,7 +470,7 @@ export default function Home() {
                   }`}
                 >
                   <Sliders className="h-3.5 w-3.5" />
-                  <span>Milestone Gates &amp; SMTP {project ? `(${project.name})` : ''}</span>
+                  <span>Milestone Gates &amp; SMTP {project ? (project.organization?.name ? `(${project.organization.name} · ${project.name})` : `(${project.name})`) : ''}</span>
                 </button>
               </div>
             </div>

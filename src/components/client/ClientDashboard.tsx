@@ -201,12 +201,12 @@ export function ClientDashboard({
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-[#C9A56A] shadow-[0_0_8px_#C9A56A]" />
               <span className="text-xs font-mono uppercase tracking-wider text-[#C9A56A]">
-                Current Phase: {project.currentPhase}
+                {project.organization?.name ? `${project.organization.name} Client Workspace` : 'Client Workspace'} &middot; Phase: {project.currentPhase}
               </span>
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-serif font-semibold text-white tracking-tight">
-              {project.name}
+              {project.organization?.name ? `${project.organization.name} — ${project.name}` : project.name}
             </h1>
 
             <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">

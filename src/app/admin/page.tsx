@@ -186,7 +186,7 @@ export default function AdminPage() {
               }`}
             >
               <Sliders className="h-3.5 w-3.5" />
-              <span>Milestone Gates &amp; SMTP ({project?.name || 'No Project Selected'})</span>
+              <span>Milestone Gates &amp; SMTP ({project ? (project.organization?.name ? `${project.organization.name} · ${project.name}` : project.name) : 'No Project Selected'})</span>
             </button>
           </div>
         </div>
@@ -236,7 +236,7 @@ export default function AdminPage() {
             <span>Internal Studio Management</span>
           </div>
           <p className="text-[11px] text-zinc-600">
-            LuxeStudio Operations &middot; <a href="https://theluxestudio.in" target="_blank" rel="noopener noreferrer" className="text-[#C9A56A] hover:underline">theluxestudio.in</a> &middot; Active Project: {project?.name || 'None Selected'}
+            LuxeStudio Operations &middot; <a href="https://theluxestudio.in" target="_blank" rel="noopener noreferrer" className="text-[#C9A56A] hover:underline">theluxestudio.in</a> &middot; Active Project: {project ? (project.organization?.name ? `${project.organization.name} — ${project.name}` : project.name) : 'None Selected'}
           </p>
         </div>
       </footer>

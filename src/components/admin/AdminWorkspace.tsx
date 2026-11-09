@@ -213,11 +213,20 @@ export function AdminWorkspace({
       {/* Sub-navigation tabs */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-white/10 pb-3">
         <div>
-          <h2 className="text-xl font-serif font-semibold text-white tracking-tight">
-            Managing: {project.name}
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-mono uppercase tracking-widest text-[#C9A56A] font-semibold">
+              Client: {project.organization?.name || 'Enterprise Client'}
+            </span>
+            <span className="text-zinc-600">&middot;</span>
+            <span className="text-xs text-zinc-400 font-mono">
+              Status: <span className="text-[#C9A56A] font-medium">{project.status}</span>
+            </span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-serif font-semibold text-white tracking-tight">
+            {project.organization?.name ? `${project.organization.name} — ${project.name}` : project.name}
           </h2>
-          <p className="text-xs text-zinc-400 font-mono">
-            Status: <span className="text-[#C9A56A] font-medium">{project.status}</span> &middot; Category: {project.category}
+          <p className="text-xs text-zinc-400 font-mono mt-0.5">
+            Category: {project.category} &middot; Target Go-Live: {project.targetDate ? new Date(project.targetDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'TBD'}
           </p>
         </div>
 
@@ -557,7 +566,7 @@ export function AdminWorkspace({
       {activeTab === 'matrix' && (
         <RequirementsMatrixSheet
           projectId={project.id}
-          projectName={project.name}
+          projectName={project.organization?.name ? `${project.organization.name} — ${project.name}` : project.name}
           requirements={project.requirements}
           currentUser={currentUser}
           isInternalUser={true}
