@@ -185,6 +185,44 @@ export async function PATCH(
     }
 
     const body = await request.json();
+
+    if (body.action === 'reset_client_password') {
+      const membership = await prisma.organizationMembership.findFirst({
+        where: {
+          organizationId: existingProject.organizationId,
+          role: 'OWNER',
+        },
+        include: { user: true },
+      });
+
+      if (!membership || !membership.user) {
+        return NextResponse.json({ error: 'Client user not found for this project' }, { status: 404 });
+      }
+
+      const newPass = body.customPassword?.trim() || `Luxe-${Math.floor(1000 + Math.random() * 9000)}!`;
+      const bcrypt = await import('bcryptjs');
+      const passwordHash = await bcrypt.hash(newPass, 10);
+
+      await prisma.user.update({
+        where: { id: membership.user.id },
+        data: {
+          passwordHash,
+          mustChangePassword: true,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        credentials: {
+          clientName: existingProject.name,
+          userId: membership.user.username || membership.user.email,
+          email: membership.user.email,
+          temporaryPassword: newPass,
+          portalUrl: `${process.env.APP_URL || 'https://client.theluxestudio.in'}/login`,
+        },
+      });
+    }
+
     const {
       status,
       currentPhase,
@@ -245,6 +283,76 @@ export async function PATCH(
     return NextResponse.json({ success: true, project: updatedProject });
   } catch (error: any) {
     console.error('Error updating project:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const cookieStore = await cookies();
+    const activeUserId = request.headers.get('x-user-id') || cookieStore.get('luxe_user_id')?.value;
+
+    const user = activeUserId
+      ? await prisma.user.findUnique({ where: { id: activeUserId } })
+      : await prisma.user.findFirst({ where: { role: 'SUPER_ADMIN' } });
+
+    if (!user || user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized: Only Super Admin can delete projects' }, { status: 403 });
+    }
+
+    const project = await prisma.project.findUnique({
+      where: { id },
+      include: { organization: true },
+    });
+
+    if (!project) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    // Delete associated items
+    await prisma.milestone.deleteMany({ where: { projectId: id } });
+    await prisma.requirement.deleteMany({ where: { projectId: id } });
+    await prisma.deliverable.deleteMany({ where: { projectId: id } });
+    await prisma.document.deleteMany({ where: { projectId: id } });
+    await prisma.prototypeFeedback.deleteMany({ where: { projectId: id } });
+    await prisma.approvalRequest.deleteMany({ where: { projectId: id } });
+    await prisma.uatIssue.deleteMany({ where: { projectId: id } });
+    await prisma.maintenanceRecord.deleteMany({ where: { projectId: id } });
+    await prisma.discussionThread.deleteMany({ where: { projectId: id } });
+    await prisma.projectUpdate.deleteMany({ where: { projectId: id } });
+    await prisma.meetingDecision.deleteMany({ where: { projectId: id } });
+
+    await prisma.project.delete({ where: { id } });
+
+    // Clean up client organization & users if no other projects remain
+    const otherProjects = await prisma.project.count({
+      where: { organizationId: project.organizationId },
+    });
+
+    if (otherProjects === 0 && project.organization.slug !== 'luxestudio') {
+      const memberships = await prisma.organizationMembership.findMany({
+        where: { organizationId: project.organizationId },
+      });
+      for (const m of memberships) {
+        await prisma.user.deleteMany({
+          where: {
+            id: m.userId,
+            role: { in: ['CLIENT_OWNER', 'CLIENT_COLLABORATOR', 'CLIENT_VIEWER'] },
+          },
+        });
+      }
+      await prisma.organization.delete({
+        where: { id: project.organizationId },
+      });
+    }
+
+    return NextResponse.json({ success: true, message: 'Project successfully deleted' });
+  } catch (error: any) {
+    console.error('Error deleting project:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

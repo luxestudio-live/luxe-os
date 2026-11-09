@@ -52,6 +52,18 @@ interface ProjectSummary {
     name: string;
     slug: string;
     brandColor: string;
+    memberships?: Array<{
+      id: string;
+      role: string;
+      user: {
+        id: string;
+        username?: string | null;
+        name: string;
+        email: string;
+        role: string;
+        mustChangePassword: boolean;
+      };
+    }>;
   };
   milestones?: Array<{
     id: string;
@@ -280,6 +292,56 @@ export function ProjectPortfolioHub({
     setTimeout(() => {
       setCredentialsModal((prev) => (prev ? { ...prev, copied: false } : null));
     }, 3000);
+  };
+
+  // Reset Client Password Handover
+  const handleResetClientPassword = async (p: ProjectSummary) => {
+    const customPass = prompt(`Enter new temporary password for ${p.organization.name} (leave blank to auto-generate):`);
+    if (customPass === null) return;
+
+    try {
+      const res = await fetch(`/api/projects/${p.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reset_client_password',
+          customPassword: customPass.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to reset password');
+
+      setCredentialsModal({
+        isOpen: true,
+        clientName: data.credentials.clientName || p.organization.name,
+        projectName: p.name,
+        userId: data.credentials.userId,
+        email: data.credentials.email,
+        temporaryPassword: data.credentials.temporaryPassword,
+        portalUrl: `${window.location.origin}/login`,
+        copied: false,
+      });
+      await onReload();
+    } catch (err: any) {
+      alert(err.message || 'Error resetting password');
+    }
+  };
+
+  // Delete Project Handover
+  const handleDeleteProject = async (projectId: string, projectName: string) => {
+    if (!confirm(`Are you sure you want to delete "${projectName}"? This will permanently remove its milestones, requirements, and client organization access.`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete project');
+      await onReload();
+    } catch (err: any) {
+      alert(err.message || 'Error deleting project');
+    }
   };
 
   return (
@@ -617,6 +679,69 @@ export function ProjectPortfolioHub({
                     </span>
                   </div>
                 </div>
+
+                {/* Client Stakeholder Access & Credentials Bar */}
+                {p.organization.memberships && p.organization.memberships.length > 0 && (
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 rounded-xl border border-white/[0.08] bg-[#0E0E10] px-4 py-3 text-xs">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#C9A56A]/10 text-[#C9A56A] border border-[#C9A56A]/20">
+                        <Users className="h-3.5 w-3.5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 font-mono">
+                          <span className="text-zinc-400">Client User ID:</span>
+                          <span className="font-bold text-[#C9A56A] select-all">
+                            {p.organization.memberships[0]?.user?.username || p.organization.memberships[0]?.user?.email}
+                          </span>
+                          {p.organization.memberships[0]?.user?.mustChangePassword && (
+                            <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[9px] text-amber-300 border border-amber-500/20 font-sans">
+                              First Login Pending
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-zinc-500 font-mono">
+                          {p.organization.memberships[0]?.user?.name} ({p.organization.memberships[0]?.user?.email})
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          const clientUser = p.organization.memberships?.[0]?.user;
+                          const uId = clientUser?.username || clientUser?.email || '';
+                          const text = `LUXEOS CLIENT ACCESS DETAILS\n\nClient: ${p.organization.name}\nProject: ${p.name}\nPortal URL: ${window.location.origin}/login\nUser ID: ${uId}\n\n*Sign in using your User ID. If you need a temporary password reset, contact studio operations at hello@theluxestudio.in.*`;
+                          navigator.clipboard.writeText(text);
+                          alert(`Copied client login details for ${uId} to clipboard!`);
+                        }}
+                        className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#171719] px-2.5 py-1.5 text-xs text-zinc-300 hover:text-white hover:border-[#C9A56A] transition font-medium"
+                      >
+                        <Copy className="h-3 w-3 text-[#C9A56A]" />
+                        <span>Copy Access Info</span>
+                      </button>
+
+                      {isSuperAdmin && (
+                        <button
+                          onClick={() => handleResetClientPassword(p)}
+                          className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#171719] px-2.5 py-1.5 text-xs text-zinc-300 hover:text-amber-300 hover:border-amber-500/40 transition font-medium"
+                        >
+                          <Lock className="h-3 w-3 text-amber-400" />
+                          <span>Reset Password</span>
+                        </button>
+                      )}
+
+                      {isSuperAdmin && (
+                        <button
+                          onClick={() => handleDeleteProject(p.id, p.name)}
+                          className="flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/5 px-2.5 py-1.5 text-xs text-red-400 hover:bg-red-500/20 transition font-medium"
+                          title="Delete project"
+                        >
+                          <span>Delete</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })

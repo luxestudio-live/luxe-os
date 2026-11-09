@@ -52,7 +52,24 @@ export async function GET(request: Request) {
     const projects = await prisma.project.findMany({
       where: whereClause,
       include: {
-        organization: true,
+        organization: {
+          include: {
+            memberships: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    username: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                    mustChangePassword: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         milestones: {
           orderBy: { sequence: 'asc' },
         },
