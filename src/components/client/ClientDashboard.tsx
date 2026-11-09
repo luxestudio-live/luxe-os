@@ -210,11 +210,21 @@ export function ClientDashboard({
             </h1>
 
             <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
-              Target completion date:{' '}
+              Target Go-Live Date:{' '}
               <strong className="text-zinc-200">
                 {project.targetDate ? new Date(project.targetDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '30 November 2026'}
               </strong>
-              . Includes full custom deliverables, service integration, and {project.hypercareDays || 14}-day complimentary hypercare.
+              . Deliverables and integrations conclude at launch, followed by{' '}
+              <strong className="text-zinc-200">{project.hypercareDays || 14} days of complimentary post-launch hypercare support</strong>
+              {' '}(extending through{' '}
+              <strong className="text-[#C9A56A]">
+                {(() => {
+                  const base = project.goLiveDate ? new Date(project.goLiveDate) : (project.targetDate ? new Date(project.targetDate) : new Date('2026-11-30'));
+                  const end = new Date(base.getTime() + (project.hypercareDays || 14) * 24 * 60 * 60 * 1000);
+                  return end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                })()}
+              </strong>
+              ) before transitioning into standard maintenance.
             </p>
 
             {/* Clean Progress Meter */}

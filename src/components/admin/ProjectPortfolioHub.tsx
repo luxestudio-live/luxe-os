@@ -827,7 +827,7 @@ export function ProjectPortfolioHub({
 
                 <div>
                   <label className="block text-zinc-400 font-medium mb-1">
-                    Target Go-Live Date
+                    Target Go-Live / Cutover Date
                   </label>
                   <input
                     type="date"
@@ -835,6 +835,7 @@ export function ProjectPortfolioHub({
                     onChange={(e) => setNewTargetDate(e.target.value)}
                     className="w-full rounded-lg border border-white/10 bg-[#0B0B0D] px-3 py-2 text-white focus:border-[#C9A56A] focus:outline-none"
                   />
+                  <p className="text-[10px] text-zinc-500 mt-1">Production cutover date; 14-day hypercare begins post go-live.</p>
                 </div>
               </div>
 
@@ -1177,13 +1178,14 @@ export function ProjectPortfolioHub({
                 </div>
 
                 <div>
-                  <label className="block text-zinc-400 font-medium mb-1">Target Completion Date</label>
+                  <label className="block text-zinc-400 font-medium mb-1">Target Go-Live / Cutover Date</label>
                   <input
                     type="date"
                     value={editTargetDate}
                     onChange={(e) => setEditTargetDate(e.target.value)}
                     className="w-full rounded-lg border border-white/10 bg-[#171719] px-3 py-2 text-white focus:border-[#C9A56A] focus:outline-none"
                   />
+                  <p className="text-[10px] text-zinc-500 mt-1">Production cutover date; hypercare window runs post go-live.</p>
                 </div>
               </div>
 
