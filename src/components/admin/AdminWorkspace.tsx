@@ -22,6 +22,7 @@ import {
   RotateCcw,
   Lock,
   UserCheck,
+  ExternalLink,
 } from 'lucide-react';
 
 interface AdminWorkspaceProps {
@@ -63,6 +64,31 @@ export function AdminWorkspace({
   const [updateType, setUpdateType] = useState('PROGRESS');
   const [isInternalOnly, setIsInternalOnly] = useState(false);
   const [publishing, setPublishing] = useState(false);
+
+  // Prototype & Staging Link State
+  const [workspacePrototypeUrl, setWorkspacePrototypeUrl] = useState(project.prototypeUrl || '');
+  const [savingUrl, setSavingUrl] = useState(false);
+
+  const handleSavePrototypeUrl = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingUrl(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prototypeUrl: workspacePrototypeUrl.trim() || null,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to update prototype URL');
+      await onReload();
+      alert('Prototype URL updated successfully! It is now live in the client portal.');
+    } catch (err: any) {
+      alert(err.message || 'Error updating prototype URL');
+    } finally {
+      setSavingUrl(false);
+    }
+  };
 
   const pendingRequirements = (project.requirements || []).filter(
     (r) => !r.clientInput?.trim() && r.status !== 'ACCEPTED'
@@ -293,6 +319,52 @@ export function AdminWorkspace({
               </div>
               <p className="text-[11px] text-zinc-500 font-mono">Target: 30 Nov 2026</p>
             </div>
+          </div>
+
+          {/* Client Staging Prototype Link Card */}
+          <div className="rounded-2xl border border-white/10 bg-[#171719] p-5 shadow-xl space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-white/10 pb-3">
+              <div>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-[#C9A56A]">
+                  Client Interactive Environment
+                </span>
+                <h3 className="text-sm font-semibold text-white mt-0.5">
+                  Client Prototype &amp; Staging Preview Link
+                </h3>
+                <p className="text-xs text-zinc-400">
+                  This URL is embedded in the client's interactive Prototype Preview Studio and linked on their dashboard hero.
+                </p>
+              </div>
+
+              {project.prototypeUrl && (
+                <a
+                  href={project.prototypeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#C9A56A]/40 bg-[#C9A56A]/10 px-3 py-1.5 text-xs text-[#C9A56A] hover:bg-[#C9A56A] hover:text-black transition font-semibold"
+                >
+                  <span>Open Live Preview</span>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              )}
+            </div>
+
+            <form onSubmit={handleSavePrototypeUrl} className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="url"
+                value={workspacePrototypeUrl}
+                onChange={(e) => setWorkspacePrototypeUrl(e.target.value)}
+                placeholder="https://staging.clientdomain.com or https://kalajay.theluxestudio.in"
+                className="flex-1 rounded-lg border border-white/10 bg-[#0B0B0D] px-3 py-2 text-xs text-white placeholder-zinc-600 focus:border-[#C9A56A] focus:outline-none font-mono"
+              />
+              <button
+                type="submit"
+                disabled={savingUrl}
+                className="rounded-lg bg-[#C9A56A] px-4 py-2 text-xs font-semibold text-black hover:bg-[#B89355] transition shadow disabled:opacity-50 shrink-0"
+              >
+                {savingUrl ? 'Updating...' : 'Save Prototype URL'}
+              </button>
+            </form>
           </div>
 
           {/* Project Management Table */}

@@ -103,6 +103,7 @@ export function ProjectPortfolioHub({
   const [newClientUsername, setNewClientUsername] = useState('');
   const [newProjectName, setNewProjectName] = useState('');
   const [newCategory, setNewCategory] = useState('Custom Web & E-Commerce');
+  const [newPrototypeUrl, setNewPrototypeUrl] = useState('');
   const [newClientEmail, setNewClientEmail] = useState('');
   const [newClientContactName, setNewClientContactName] = useState('');
   const [newCustomPassword, setNewCustomPassword] = useState('');
@@ -131,6 +132,7 @@ export function ProjectPortfolioHub({
   const [editTargetDate, setEditTargetDate] = useState('');
   const [editGoLiveDate, setEditGoLiveDate] = useState('');
   const [editHypercareDays, setEditHypercareDays] = useState(14);
+  const [editPrototypeUrl, setEditPrototypeUrl] = useState('');
   const [editAssignedPmId, setEditAssignedPmId] = useState('');
   const [savingTimeline, setSavingTimeline] = useState(false);
 
@@ -188,6 +190,7 @@ export function ProjectPortfolioHub({
         : ''
     );
     setEditHypercareDays(p.hypercareDays || 14);
+    setEditPrototypeUrl(p.prototypeUrl || '');
     setEditAssignedPmId(p.assignedPmId || '');
   };
 
@@ -208,6 +211,7 @@ export function ProjectPortfolioHub({
           targetDate: editTargetDate || null,
           goLiveDate: editStatus === 'HYPERCARE' && !editGoLiveDate ? new Date() : editGoLiveDate || null,
           hypercareDays: editHypercareDays,
+          prototypeUrl: editPrototypeUrl.trim() || null,
           assignedPmId: isSuperAdmin ? editAssignedPmId : undefined,
         }),
       });
@@ -240,6 +244,7 @@ export function ProjectPortfolioHub({
           clientName: newClientName,
           projectName: newProjectName,
           category: newCategory,
+          prototypeUrl: newPrototypeUrl.trim() || null,
           clientUsername: clientUserId,
           clientEmail,
           clientContactName: newClientContactName || `${newClientName} Contact`,
@@ -270,6 +275,7 @@ export function ProjectPortfolioHub({
       setNewClientName('');
       setNewClientUsername('');
       setNewProjectName('');
+      setNewPrototypeUrl('');
       setNewClientEmail('');
       setNewClientContactName('');
       setNewCustomPassword('');
@@ -652,11 +658,20 @@ export function ProjectPortfolioHub({
                   </div>
 
                   <div className="rounded-lg bg-[#0B0B0D]/50 border border-white/5 p-2.5">
-                    <span className="text-zinc-500 text-[10px] uppercase font-mono block">Staging Preview</span>
-                    <span className="font-mono text-zinc-300 truncate block">
-                      {p.stagingUrl || p.prototypeUrl ? (
+                    <div className="flex items-center justify-between">
+                      <span className="text-zinc-500 text-[10px] uppercase font-mono block">Staging Preview</span>
+                      <button
+                        onClick={() => handleOpenTimelineEditor(p)}
+                        className="text-[10px] text-[#C9A56A] hover:underline"
+                        title="Update Prototype / Staging URL"
+                      >
+                        Edit URL
+                      </button>
+                    </div>
+                    <span className="font-mono text-zinc-300 truncate block mt-0.5">
+                      {p.prototypeUrl || p.stagingUrl ? (
                         <a
-                          href={p.stagingUrl || p.prototypeUrl || '#'}
+                          href={p.prototypeUrl || p.stagingUrl || '#'}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-[#C9A56A] hover:underline flex items-center gap-1"
@@ -665,7 +680,12 @@ export function ProjectPortfolioHub({
                           <ExternalLink className="h-3 w-3" />
                         </a>
                       ) : (
-                        'None configured'
+                        <button
+                          onClick={() => handleOpenTimelineEditor(p)}
+                          className="text-zinc-500 hover:text-[#C9A56A] text-[11px] underline"
+                        >
+                          + Add Prototype Link
+                        </button>
                       )}
                     </span>
                   </div>
@@ -837,6 +857,23 @@ export function ProjectPortfolioHub({
                   />
                   <p className="text-[10px] text-zinc-500 mt-1">Production cutover date; 14-day hypercare begins post go-live.</p>
                 </div>
+              </div>
+
+              {/* Prototype Preview URL */}
+              <div>
+                <label className="block text-zinc-400 font-medium mb-1">
+                  Client Prototype / Staging Preview URL (Optional)
+                </label>
+                <input
+                  type="url"
+                  value={newPrototypeUrl}
+                  onChange={(e) => setNewPrototypeUrl(e.target.value)}
+                  placeholder="https://staging.clientdomain.com or https://kalajay.theluxestudio.in"
+                  className="w-full rounded-lg border border-white/10 bg-[#0B0B0D] px-3 py-2 text-white placeholder-zinc-600 focus:border-[#C9A56A] focus:outline-none"
+                />
+                <p className="text-[10px] text-zinc-500 mt-1">
+                  Embedded in the client's interactive Prototype Preview Studio and linked on their dashboard.
+                </p>
               </div>
 
               {/* Client Owner Login Credentials Setup */}
@@ -1186,6 +1223,23 @@ export function ProjectPortfolioHub({
                     className="w-full rounded-lg border border-white/10 bg-[#171719] px-3 py-2 text-white focus:border-[#C9A56A] focus:outline-none"
                   />
                   <p className="text-[10px] text-zinc-500 mt-1">Production cutover date; hypercare window runs post go-live.</p>
+                </div>
+
+                {/* Client Prototype URL */}
+                <div>
+                  <label className="block text-zinc-400 font-medium mb-1">
+                    Client Prototype / Staging Preview URL
+                  </label>
+                  <input
+                    type="url"
+                    value={editPrototypeUrl}
+                    onChange={(e) => setEditPrototypeUrl(e.target.value)}
+                    placeholder="https://staging.clientdomain.com or https://kalajay.theluxestudio.in"
+                    className="w-full rounded-lg border border-white/10 bg-[#171719] px-3 py-2 text-white placeholder-zinc-600 focus:border-[#C9A56A] focus:outline-none"
+                  />
+                  <p className="text-[10px] text-zinc-500 mt-1">
+                    Live staging link displayed to the client in their Prototype Preview Studio and hero card.
+                  </p>
                 </div>
               </div>
 
